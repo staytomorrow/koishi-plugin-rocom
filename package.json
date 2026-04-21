@@ -15,8 +15,18 @@
     "koishi",
     "plugin"
   ],
-  "devDependencies": {},
+  "dependencies": {
+    "art-template": "^4.13.4"
+  },
   "peerDependencies": {
-    "koishi": "^4.18.7"
+    "koishi": "^4.18.7",
+    "koishi-plugin-puppeteer": "^3.5.3"
+  },
+  "koishi": {
+    "service": {
+      "required": [
+        "puppeteer"
+      ]
+    }
   }
 }

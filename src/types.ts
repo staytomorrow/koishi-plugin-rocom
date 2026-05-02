@@ -7,6 +7,7 @@ import { Renderer } from './render'
 export interface PluginConfig {
   apiBaseUrl: string
   wegameApiKey: string
+  qqLoginDebugMode: boolean
   adminUserIds: string[]
   autoRefreshEnabled: boolean
   autoRefreshTime: string[]

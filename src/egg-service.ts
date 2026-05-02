@@ -320,5 +320,177 @@ export class EggService {
     }
     return `❌ ${fa} × ${ma} 无法配种。\n原因：${ev.reasons.join('；')}`
   }
+
+  // ─── 渲染数据构建 ───
+
+  buildSearchData(pet: any) {
+    const egs = this.getEggGroups(pet)
+    const compat = this.getCompatiblePets(pet)
+    const gmap: Record<number, any[]> = {}
+    for (const gid of egs) if (gid !== 1) gmap[gid] = []
+    for (const c of compat) {
+      for (const gid of egs) {
+        if (gid !== 1 && this.getEggGroups(c).includes(gid)) {
+          gmap[gid] = gmap[gid] || []
+          gmap[gid].push(c)
+        }
+      }
+    }
+    const sections = egs.map(gid => {
+      const meta = EGG_GROUP_META[gid]
+      const members = gmap[gid] || []
+      return {
+        id: gid,
+        label: meta?.label || `蛋组${gid}`,
+        desc: meta?.desc || '',
+        count: members.length,
+        members: members.slice(0, 30).map(m => ({
+          name: petName(m), id: m.id,
+          type_label: petType(m),
+          egg_groups_label: formatEggGroups(this.getEggGroups(m)),
+        })),
+        has_more: members.length > 30,
+        total: members.length,
+      }
+    })
+    const br = pet.breeding || {}
+    const bp = pet.breeding_profile || {}
+    const eggDetails = this.buildEggDetails(br)
+    return {
+      pet_name: petName(pet), pet_id: pet.id,
+      pet_icon: petIconUrl(pet.id), pet_image: petImageUrl(pet.id),
+      type_label: petType(pet),
+      egg_groups_label: formatEggGroups(egs),
+      egg_groups: egs,
+      egg_group_labels: Object.fromEntries(egs.map(gid => [gid, getEggGroupLabel(gid)])),
+      male_rate: bp.male_rate ?? null,
+      female_rate: bp.female_rate ?? null,
+      hatch_label: fmtDur(br.hatch_data),
+      weight_label: fmtRange(wt(br.weight_low), wt(br.weight_high), 'kg'),
+      height_label: fmtRange(br.height_low, br.height_high, 'cm'),
+      total_compatible: compat.length,
+      is_undiscovered: egs.includes(1),
+      egg_group_sections: sections,
+      total_stats: ['base_hp', 'base_phy_atk', 'base_mag_atk', 'base_phy_def', 'base_mag_def', 'base_spd']
+        .reduce((sum, k) => sum + (pet[k] || 0), 0),
+      egg_details: eggDetails,
+      commandHint: '洛克查蛋 <名称> | 洛克查蛋 身高25 体重1.5 | 洛克配种 <父> <母>',
+      copyright: 'Koishi & WeGame 洛克王国插件',
+    }
+  }
+
+  buildPairData(a: any, b: any) {
+    const ev = this.evaluatePair(a, b)
+    const makePetCard = (p: any) => ({
+      name: petName(p), id: p.id,
+      type_label: petType(p),
+      egg_groups_label: formatEggGroups(this.getEggGroups(p)),
+    })
+    return {
+      mother: makePetCard(a),
+      father: makePetCard(b),
+      ...ev,
+      commandHint: '默认前父后母，孵蛋结果跟随母体 | 洛克配种 <精灵名> 查怎么孵',
+      copyright: 'Koishi & WeGame 洛克王国插件',
+    }
+  }
+
+  buildWantPetData(pet: any) {
+    const fathers = this.getBreedingParents(pet)
+    const bp = pet.breeding_profile || {}
+    const eggGroups = this.getEggGroups(pet)
+    const makePetCard = (p: any) => ({
+      id: p.id, name: petName(p),
+      icon: petIconUrl(p.id), image: petImageUrl(p.id),
+      type_label: petType(p),
+      egg_groups_label: formatEggGroups(this.getEggGroups(p)),
+    })
+    return {
+      target: makePetCard(pet),
+      egg_groups_label: formatEggGroups(eggGroups),
+      female_rate: bp.female_rate ?? null,
+      male_rate: bp.male_rate ?? null,
+      is_undiscovered: eggGroups.includes(1),
+      fathers: fathers.slice(0, 30).map(makePetCard),
+      father_count: fathers.length,
+      commandHint: '洛克配种 <父体> <母体> 查看详细结果',
+      copyright: 'Koishi & WeGame 洛克王国插件',
+    }
+  }
+
+  buildCandidatesRenderData(keyword: string, candidates: any[]) {
+    return {
+      keyword,
+      count: candidates.length,
+      candidates: candidates.map(p => ({
+        id: p.id, name: petName(p),
+        icon: petIconUrl(p.id), image: petImageUrl(p.id),
+        type_label: petType(p),
+        egg_groups_label: formatEggGroups(this.getEggGroups(p)),
+      })),
+      commandHint: '请使用更精确的名称重新查询',
+      copyright: 'Koishi & WeGame 洛克王国插件',
+    }
+  }
+
+  buildSizeSearchData(height?: number, weight?: number, results?: { perfect: any[]; range: any[] }) {
+    const conditions: string[] = []
+    if (height != null) conditions.push(`身高 ${height} cm`)
+    if (weight != null) conditions.push(`体重 ${weight} kg`)
+    const makePetCard = (p: any) => {
+      const br = p.breeding || {}
+      return {
+        id: p.id, name: petName(p),
+        icon: petIconUrl(p.id), image: petImageUrl(p.id),
+        type_label: petType(p),
+        egg_groups_label: formatEggGroups(this.getEggGroups(p)),
+        height_label: fmtRange(br.height_low, br.height_high, 'cm'),
+        weight_label: fmtRange(wt(br.weight_low), wt(br.weight_high), 'kg'),
+      }
+    }
+    const perfect = (results?.perfect || []).map(makePetCard)
+    const ranged = (results?.range || []).map(makePetCard)
+    return {
+      query_label: conditions.join(' / ') || '尺寸反查',
+      perfect_matches: perfect,
+      range_matches: ranged,
+      total_count: perfect.length + ranged.length,
+      has_results: !!(perfect.length || ranged.length),
+      commandHint: '洛克查蛋 <精灵名> | 洛克查蛋 身高25 体重1.5',
+      copyright: 'Koishi & WeGame 洛克王国插件',
+    }
+  }
+
+  private buildEggDetails(breeding: any) {
+    if (!breeding) return { has_data: false }
+    const baseProb = breeding.egg_base_glass_prob_array
+    const addProb = breeding.egg_add_glass_prob_array
+    const preciousMap: Record<number, string> = {
+      1: '迪莫蛋', 2: '星辰蛋', 3: '彩虹蛋', 4: '梦幻蛋', 5: '传说蛋', 6: '神秘蛋', 7: '特殊蛋',
+    }
+    const variants = (breeding.variants || []).map((v: any) => ({
+      id: v.id, name: v.name || '',
+      hatch_label: fmtDur(v.hatch_data),
+      weight_label: fmtRange(wt(v.weight_low), wt(v.weight_high), 'kg'),
+      height_label: fmtRange(v.height_low, v.height_high, 'cm'),
+      precious_egg_type: v.precious_egg_type,
+      precious_egg_label: preciousMap[v.precious_egg_type] || '普通蛋',
+      base_prob_str: v.egg_base_glass_prob_array?.length === 2
+        ? `${v.egg_base_glass_prob_array[0]}/${v.egg_base_glass_prob_array[1]}` : '暂无',
+    }))
+    return {
+      has_data: true,
+      base_prob_str: baseProb?.length === 2 ? `${baseProb[0]}/${baseProb[1]}` : '暂无数据',
+      base_prob_pct: baseProb?.length === 2 ? (baseProb[0] / baseProb[1]) * 100 : null,
+      add_prob_str: addProb?.length === 2 ? `${addProb[0]}/${addProb[1]}` : '暂无数据',
+      add_prob_pct: addProb?.length === 2 ? (addProb[0] / addProb[1]) * 100 : null,
+      is_contact_add_glass: breeding.is_contact_add_glass_prob,
+      is_contact_add_shining: breeding.is_contact_add_shining_prob,
+      precious_egg_type: breeding.precious_egg_type,
+      precious_egg_label: preciousMap[breeding.precious_egg_type] || '普通蛋',
+      variants,
+      variant_count: variants.length,
+    }
+  }
 }
 

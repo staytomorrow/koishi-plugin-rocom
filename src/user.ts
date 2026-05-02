@@ -5,7 +5,6 @@ import path from 'node:path'
 const logger = new Logger('rocom-user')
 
 export interface Binding {
-  framework_token: string
   binding_id: string
   login_type: string
   role_id: string
@@ -20,7 +19,7 @@ export interface MerchantSubscription {
   platform?: string
   mention_all: boolean
   items: string[]
-  last_push_round: string
+  last_push_round: string | null
   last_matched_items: string[]
   updated_by: string
 }
@@ -45,6 +44,7 @@ class JsonStore<T> {
     }
     return JSON.parse(JSON.stringify(defaultData))
   }
+
   save() {
     try {
       const tmp = this.filePath + '.tmp'
@@ -77,16 +77,22 @@ export class UserManager {
 
   saveUserBindings(userId: string, bindings: Binding[]) {
     const seen = new Set<string>()
-    const cleaned = bindings.filter(b => {
-      const id = b.binding_id || b.framework_token
-      if (seen.has(id)) return false
-      seen.add(id)
-      return true
-    })
-    if (cleaned.length > 0) {
-      const hasPrimary = cleaned.some(b => b.is_primary)
-      if (!hasPrimary) cleaned[0].is_primary = true
+    const cleaned = bindings
+      .map((binding) => {
+        const { framework_token: _frameworkToken, ...rest } = binding as Binding & { framework_token?: string }
+        return rest
+      })
+      .filter((binding) => {
+        const id = binding.binding_id || binding.role_id
+        if (seen.has(id)) return false
+        seen.add(id)
+        return true
+      })
+
+    if (cleaned.length > 0 && !cleaned.some(b => b.is_primary)) {
+      cleaned[0].is_primary = true
     }
+
     const data = this.store.get()
     data[userId] = cleaned
     this.store.set(data)

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=600, initial-scale=1">
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="{{_res_path}}render/bind-list/style.css">
+</head>
+<body class="page-out-client">
+  <div class="bind-cont page-section-main">
+    <div class="bind-page">
+      <div class="page-header">
+        <h1 class="page-title">{{title}}</h1>
+        <p class="page-subtitle">{{subtitle}}</p>
+      </div>
+      
+      <main class="bind-list">
+        {{if bindings && bindings.length > 0}}
+          {{each bindings item}}
+          <div class="bind-item{{if item.isPrimary}} is-primary{{/if}}">
+            <div class="bind-index">#{{item.index}}</div>
+            <div class="bind-details">
+              <div class="bind-name-row">
+                <span class="bind-nickname">{{item.nickname}}</span>
+                {{if item.isPrimary}}
+                  <span class="badge badge-primary">主账号</span>
+                {{/if}}
+              </div>
+              <div class="bind-info-row">
+                <span class="info-label">ID:</span> <span class="info-value">{{item.role_id}}</span>
+                <span class="info-label ml">来源:</span> <span class="info-value">{{item.type_label}}</span>
+              </div>
+            </div>
+            <div class="bind-date">{{item.created_at}}</div>
+          </div>
+          {{/each}}
+        {{else}}
+          <div class="empty-state">
+            暂无绑定的账号信息
+          </div>
+        {{/if}}
+
+      <div class="pagination-footer">
+        <span class="pagination-hint">{{commandHint}}</span>
+        <span class="copyright">{{copyright}}</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

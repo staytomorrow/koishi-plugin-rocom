@@ -20,6 +20,14 @@ export function register(deps: PluginDeps) {
     .alias('查蛋')
     .action(async (_, arg1, arg2) => {
       if (!arg1) return '🥚 查蛋用法：\n  洛克查蛋 <精灵名>\n  洛克查蛋 25 1.5\n  洛克查蛋 25'
+      const n1 = parseFloat(arg1)
+      if (!isNaN(n1)) {
+        const n2 = arg2 ? parseFloat(arg2) : NaN
+        const height = n1
+        const weight = isNaN(n2) ? undefined : n2
+        const results = eggService.searchBySize(height, weight)
+        return eggService.buildSizeSearchText(height, weight, results)
+      }
       const name = [arg1, arg2].filter(Boolean).join(' ')
       const sr = eggService.search(name)
       if (sr.matchType === 'multi') {

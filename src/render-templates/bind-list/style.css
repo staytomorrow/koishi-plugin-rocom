@@ -1,0 +1,178 @@
+@font-face {
+    font-family: 'mianfeiziti';
+    src: url('../../ttf/dundun.xHd_Ee5-.woff2') format('woff2'),
+         url('../../ttf/dundun.BCbg_KoL.ttf') format('truetype');
+    font-display: swap;
+}
+
+:root {
+    --helper-font-family-mianfeiziti: 'mianfeiziti', system-ui, "calibri", "Roboto", verdana, "PingFang SC", sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 30px;
+    background-color: #FAF6ED;
+    display: inline-block;
+    font-family: var(--helper-font-family-mianfeiziti);
+}
+
+.bind-cont {
+    width: 680px;
+    background: url("../../img/ercode-bg.D1ccSQKH.png") no-repeat center center;
+    background-size: 100% 100%;
+    position: relative;
+    padding: 30px 40px;
+    box-sizing: border-box;
+}
+
+.bind-page {
+    position: relative;
+    z-index: 2;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 25px;
+    border-bottom: 2px dashed rgba(160, 140, 110, 0.4);
+    padding-bottom: 12px;
+}
+
+.page-title {
+    color: #ffc65f;
+    font-size: 34px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    -webkit-text-stroke: 1.5px #d4842b;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.page-subtitle {
+    color: #9e8e76;
+    font-size: 14px;
+    margin-top: 6px;
+}
+
+.bind-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.bind-item {
+    width: 100%;
+    height: 85px; 
+    background: url("../../img/player-bg.png") no-repeat center center;
+    background-size: 100% 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 25px;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.bind-item.is-primary {
+    filter: drop-shadow(0 0 8px rgba(255, 198, 95, 0.4));
+}
+
+.bind-index {
+    font-size: 24px;
+    font-weight: bold;
+    color: #c97926;
+    width: 50px;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.bind-details {
+    flex: 1;
+    padding-left: 10px;
+}
+
+.bind-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.bind-nickname {
+    font-size: 18px;
+    font-weight: bold;
+    color: #5a3e1b;
+}
+
+.badge {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+.badge-primary {
+    background: #ffc65f;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.bind-info-row {
+    font-size: 13px;
+    color: #8c7a61;
+    display: flex;
+    align-items: center;
+}
+
+.info-label {
+    opacity: 0.7;
+    margin-right: 4px;
+}
+
+.info-value {
+    font-weight: 500;
+}
+
+.ml {
+    margin-left: 15px;
+}
+
+.bind-date {
+    font-size: 11px;
+    color: #bfae95;
+    text-align: right;
+    width: 100px;
+}
+
+.empty-state {
+    padding: 60px 0;
+    text-align: center;
+    color: #9e8e76;
+    background: url("../../img/player-bg.png") no-repeat center center;
+    background-size: 100% 100%;
+    font-size: 16px;
+}
+
+/* 标准化页脚区域 */
+.pagination-footer {
+    margin-top: 20px;
+    padding-top: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-top: 1.5px dashed rgba(160, 140, 110, 0.4);
+}
+
+.pagination-hint {
+    color: #9e8e76;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.copyright {
+    color: #bfae95;
+    font-size: 11px;
+    opacity: 0.8;
+}

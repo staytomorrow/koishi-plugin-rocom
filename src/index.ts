@@ -6,6 +6,11 @@ import { UserManager, MerchantSubscriptionManager } from './user'
 import { EggService } from './egg-service'
 import { Renderer } from './render'
 import { PluginDeps } from './types'
+import {
+  migrateLegacyFrameworkTokens,
+  migrateRoleTokensToUserId,
+  setupRoleTokenModel,
+} from './role-token'
 import { register as registerAccount } from './commands/account'
 import { register as registerQuery } from './commands/query'
 import { register as registerMerchant } from './commands/merchant'
@@ -14,11 +19,12 @@ import { register as registerEgg } from './commands/egg'
 import { register as registerAdmin } from './commands/admin'
 
 export const name = 'rocom'
-export const inject = { required: ['puppeteer'] }
+export const inject = { required: ['puppeteer', 'database'] }
 
 export interface Config {
   apiBaseUrl: string
   wegameApiKey: string
+  qqLoginDebugMode: boolean
   adminUserIds: string[]
   autoRefreshEnabled: boolean
   autoRefreshTime: string[]
@@ -30,6 +36,7 @@ export interface Config {
 export const Config: Schema<Config> = Schema.object({
   apiBaseUrl: Schema.string().default('https://wegame.shallow.ink').description('API 基础地址'),
   wegameApiKey: Schema.string().default('').description('WeGame API Key'),
+  qqLoginDebugMode: Schema.boolean().default(false).description('QQ 扫码登录调试模式：扫码成功后输出用户 fwt（敏感凭证，请仅调试时开启）'),
   adminUserIds: Schema.array(String).default([]).description('管理员用户 ID 列表（允许执行管理员命令）'),
   autoRefreshEnabled: Schema.boolean().default(false).description('启用自动刷新凭证'),
   autoRefreshTime: Schema.array(String).default(['00:00', '12:00']).description('自动刷新时间'),
@@ -39,16 +46,26 @@ export const Config: Schema<Config> = Schema.object({
 })
 
 export function apply(ctx: Context, config: Config) {
+  setupRoleTokenModel(ctx)
   const client = new RocomClient(config.apiBaseUrl, config.wegameApiKey)
   const dataDir = path.join(ctx.baseDir, 'data', 'rocom')
   const userMgr = new UserManager(dataDir)
   const merchantSubMgr = new MerchantSubscriptionManager(dataDir)
   const resPath = path.resolve(__dirname, '..')
   const renderer = new Renderer(resPath)
-  const searcheggsDir = path.join(resPath, 'src', 'doc', 'astrbot_plugin_rocom', 'render', 'searcheggs')
+  const searcheggsDir = path.join(resPath, 'src', 'render-templates', 'searcheggs')
   const eggService = new EggService(searcheggsDir)
 
   const deps: PluginDeps = { ctx, config, client, userMgr, merchantSubMgr, eggService, renderer }
+
+  ctx.on('ready', () => {
+    migrateRoleTokensToUserId(ctx).catch((err) => {
+      console.warn(`[rocom] role token migration failed: ${err}`)
+    })
+    migrateLegacyFrameworkTokens(ctx, userMgr).catch((err) => {
+      console.warn(`[rocom] legacy framework token migration failed: ${err}`)
+    })
+  })
 
   ctx.command('洛克', '洛克王国帮助菜单')
     .action(async () => [

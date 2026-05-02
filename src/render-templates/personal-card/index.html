@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/personal-card/style.css">
+  <style>
+    html, body {
+      overflow: visible !important;
+      width: auto !important;
+      height: auto !important;
+    }
+
+    body {
+      background: transparent;
+      margin: 0;
+      padding: 0;
+      display: inline-block;
+      min-width: 0;
+    }
+
+    .page-out-client {
+      font-size: 14px;
+    }
+
+    .stats-cont {
+      height: auto !important;
+      min-height: 6.7rem !important;
+      display: block !important;
+      overflow: visible !important;
+      background: url('{{backgroundUrl}}') no-repeat center top;
+      background-size: 100% 100%;
+      background-color: #d8cfbf;
+    }
+
+    .page-section-main {
+      height: auto !important;
+      min-height: 6.7rem !important;
+      overflow: visible !important;
+    }
+
+    .stats-cont .stats-page {
+      position: relative !important;
+      inset: auto !important;
+    }
+  </style>
+</head>
+<body class="page-out-client">
+  <div class="stats-cont page-section-main">
+    <div class="stats-page">
+      <div class="stats-title"></div>
+      <div class="stats-main">
+        <div class="stats-left">
+          <div class="stats-user-info">
+            <div class="user-info-header">
+              <div class="user-avatar">
+                <div class="helper-image">
+                  <img alt="{{userName}}" class="helper-image-pic" src="{{userAvatarDisplay}}" loading="eager" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23333\'%3E%3Ccircle cx=\'12\' cy=\'12\' r=\'12\'/%3E%3C/svg%3E'">
+                </div>
+              </div>
+              <div class="user-msg">
+                <div class="user-name">
+                  <span class="name">{{userName}}</span>
+                  <span class="level">Lv. {{userLevel}}</span>
+                </div>
+                <div class="user-uid-row">
+                  <div class="user-uid">ID:{{userUid}}</div>
+                  {{if hasExtraProfileData}}
+                  <div class="user-status-badge">
+                    <span class="status-dot {{profileStatusClass}}"></span>
+                    <span class="status-text">{{profileStatusText}}</span>
+                  </div>
+                  {{/if}}
+                </div>
+                {{if hasExtraProfileData && profileHeadTags && profileHeadTags.length}}
+                <div class="user-head-tags">
+                  {{each profileHeadTags tag}}
+                  <div class="head-tag">
+                    <span class="head-tag-label">{{tag.label}}</span>
+                    <span class="head-tag-value">{{tag.value}}</span>
+                  </div>
+                  {{/each}}
+                </div>
+                {{/if}}
+              </div>
+            </div>
+            <div class="user-info-bottom">
+              <div class="entry-day">
+                <span class="label">入学天数</span>
+                <span class="num">{{enrollDays}}</span>
+              </div>
+              <div class="entry-day">
+                <span class="label">魔法师星级</span>
+                <span class="num num-text">{{starName}}</span>
+              </div>
+            </div>
+            {{if showProfileSignature}}
+            <div class="user-signature-inline">
+              <span class="user-signature-label">个性签名</span>
+              <span class="user-signature-text">{{profileSignature}}</span>
+            </div>
+            {{/if}}
+          </div>
+
+          <div class="stats-ai-panel">
+            {{if hasAiProfileData}}
+            <div class="ai-card-panel" pet-name="{{bestPetName}}">
+              <div class="ai-card-tit">
+                {{each summaryTitleParts part}}
+                <span>{{part}}</span>
+                {{/each}}
+              </div>
+              <div class="ai-card-img">
+                <div class="helper-image">
+                  <img alt="{{bestPetName}}" class="helper-image-pic" src="{{bestPetImageDisplay}}" loading="eager" onerror="this.onerror=null;this.src='{{fallbackPetImage}}'">
+                </div>
+              </div>
+              <div class="ai-card-score"><span>{{scoreText}}</span></div>
+              <div class="ai-card-name">{{bestPetName}}</div>
+            </div>
+
+            <div class="chart-wrapper">
+              <div class="chart-box">
+                <svg class="radar-svg" viewBox="0 0 260 260" aria-hidden="true">
+                  {{each radarPolygons polygon}}
+                  <polygon points="{{polygon}}" class="radar-grid{{if $index === radarPolygons.length - 1}} radar-grid-outer{{/if}}"></polygon>
+                  {{/each}}
+
+                  {{each radarAxes axis}}
+                  <line x1="{{centerX}}" y1="{{centerY}}" x2="{{axis.x}}" y2="{{axis.y}}" class="radar-axis"></line>
+                  {{/each}}
+
+                  <polygon points="{{radarAreaPoints}}" class="radar-area"></polygon>
+                  <polygon points="{{radarAreaPoints}}" class="radar-line"></polygon>
+
+                  {{each radarAxisLabels label}}
+                  <text x="{{label.x}}" y="{{label.y}}" text-anchor="{{label.anchor}}" class="radar-axis-label">{{label.name}}</text>
+                  {{/each}}
+
+                  {{each radarValueBadges badge}}
+                  <g transform="translate({{badge.x}}, {{badge.y}})">
+                    <rect width="{{badge.width}}" height="24" rx="12" class="radar-value-bg"></rect>
+                    <text x="{{badge.width / 2}}" y="12" text-anchor="middle" class="radar-value-text">{{badge.value}}</text>
+                  </g>
+                  {{/each}}
+
+                  {{each radarDots dot}}
+                  <circle cx="{{dot.x}}" cy="{{dot.y}}" r="5" class="radar-dot"></circle>
+                  {{/each}}
+                </svg>
+              </div>
+
+              <div class="ai-comment">
+                <div class="ai-comment-tit"><span>AI点评</span></div>
+                <div class="ai-comment-text">{{aiCommentText}}</div>
+              </div>
+            </div>
+            {{else}}
+            <div class="stats-ai-empty">
+              <div class="nodata-empty">
+                <div class="nodata-icon"></div>
+                <div class="nodata-text">暂无数据</div>
+                <div class="nodata-action"></div>
+              </div>
+            </div>
+            {{/if}}
+          </div>
+        </div>
+
+        <div class="stats-right">
+          <div class="user-collect-panel">
+            <div class="collect-tit">我的收藏</div>
+            <div class="user-collect-header">
+              <div class="collect-totals">
+                <span class="collect-have">{{currentCollectionCount}}</span>
+                <span class="collect-total">{{totalCollectionCount}}</span>
+                <span class="collect-text">搜集情况</span>
+              </div>
+              <div class="collect-detail">
+                <ul class="collect-spirit">
+                  <li><span class="label">了不起精灵</span><span class="num">{{amazingSpriteCount}}</span></li>
+                  <li><span class="label">异色精灵</span><span class="num">{{shinySpriteCount}}</span></li>
+                  <li><span class="label">炫彩精灵</span><span class="num">{{colorfulSpriteCount}}</span></li>
+                </ul>
+                <div class="collect-detail-btn">
+                  <span class="text">{{collectionHint}}</span>
+                  <i class="icon"></i>
+                </div>
+              </div>
+            </div>
+            <div class="user-collect-footer">
+              <div class="collect-value"><span class="label">时装收藏</span><span class="num">{{fashionCollectionCount}}</span></div>
+              <div class="collect-value"><span class="label">道具收藏</span><span class="num">{{itemCount}}</span></div>
+            </div>
+          </div>
+
+          <div class="record-panel">
+            <div class="record-tit">闪耀大赛</div>
+            {{if hasBattleData}}
+            <div class="record-main">
+              <div class="record-status">
+                <div class="helper-image"><img class="helper-image-pic" src="{{tierBadgeUrl}}"></div>
+              </div>
+              <div class="record-detail">
+                <ul class="record-detail-data">
+                  <li><span class="label">对战胜率</span><span class="num">{{winRate}}</span></li>
+                  <li><span class="label">对战场次</span><span class="num">{{totalMatch}}</span></li>
+                </ul>
+                <div class="record-detail-btn"><span class="text">查看生涯</span><i class="icon"></i></div>
+              </div>
+            </div>
+            <div class="record-recent">
+              <div class="record-recent-tit"><span>最近一场比赛</span></div>
+              <div class="match-item">
+                <div class="team-info">
+                  <div class="team team-left">
+                    <div class="team-header">
+                      <div class="player-avatar"><div class="helper-image"><img class="helper-image-pic" src="{{userAvatarDisplay}}"></div></div>
+                      <span class="player-name">{{userName}}</span>
+                    </div>
+                    <div class="character-list">
+                      {{each leftTeamPets pet}}
+                      <div class="character-item"><div class="character-avatar"><div class="helper-image"><img class="helper-image-pic" src="{{pet.icon}}"></div></div></div>
+                      {{/each}}
+                    </div>
+                  </div>
+                  <div class="match-status-center">
+                    <div class="match-status {{matchResult}}"></div>
+                  </div>
+                  <div class="team team-right">
+                    <div class="team-header">
+                      <span class="player-name">{{opponentName}}</span>
+                      <div class="player-avatar"><div class="helper-image"><img class="helper-image-pic" src="{{opponentAvatarDisplay}}"></div></div>
+                    </div>
+                    <div class="character-list">
+                      {{each rightTeamPets pet}}
+                      <div class="character-item"><div class="character-avatar"><div class="helper-image"><img class="helper-image-pic" src="{{pet.icon}}"></div></div></div>
+                      {{/each}}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {{else}}
+            <div class="stats-collect-empty">
+              <div class="nodata-empty">
+                <div class="nodata-icon"></div>
+                <div class="nodata-text">暂无数据</div>
+                <div class="nodata-action"></div>
+              </div>
+            </div>
+            {{/if}}
+          </div>
+        </div>
+      </div>
+
+      {{if hasExtraProfileData}}
+      <div class="profile-fusion-board">
+        <div class="profile-fusion-grid">
+          <div class="profile-card-showcase">
+            <div class="profile-card-preview">
+              {{if profileCardImage}}
+              <img class="profile-card-image" src="{{profileCardImage}}" alt="名片展示">
+              {{else}}
+              <div class="profile-card-placeholder">暂无名片图片</div>
+              {{/if}}
+            </div>
+          </div>
+
+          <div class="profile-fusion-card">
+            <div class="profile-fusion-title">家园信息</div>
+            <div class="profile-home-grid">
+              {{each profileHomeItems item}}
+              <div class="profile-home-item">
+                <span class="profile-home-label">{{item.label}}</span>
+                <span class="profile-home-value">{{item.value}}</span>
+              </div>
+              {{/each}}
+            </div>
+          </div>
+        </div>
+      </div>
+      {{/if}}
+    </div>
+    <div class="pagination-footer">
+      <span class="pagination-hint">{{commandHint}}</span>
+      <span class="copyright">{{copyright}}</span>
+    </div>
+  </div>
+</body>
+</html>
+

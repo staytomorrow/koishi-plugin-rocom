@@ -25,7 +25,8 @@
   "koishi": {
     "service": {
       "required": [
-        "puppeteer"
+        "puppeteer",
+        "database"
       ]
     }
   }

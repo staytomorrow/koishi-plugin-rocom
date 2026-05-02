@@ -1,5 +1,6 @@
-import { Logger, h } from 'koishi'
+import { Logger } from 'koishi'
 import { PluginDeps } from '../types'
+import { sendImageWithFallback } from '../send-image'
 
 const logger = new Logger('rocom-merchant')
 
@@ -74,8 +75,7 @@ export function register(deps: PluginDeps) {
         ? `远行商人当前商品：${products.map((p: any) => p.name || '未知').join('、')}\n轮次：${roundInfo.current || '未开放'}\n剩余：${roundInfo.countdown}`
         : '当前远行商人暂无商品。'
       const png = await deps.renderer.renderHtml(ctx, 'yuanxing-shangren', data)
-      if (png) await session!.send(h.image(png, 'image/png'))
-      else await session!.send(fallback)
+      await sendImageWithFallback(session, png, fallback, 'merchant:yuanxing-shangren')
     })
 
   ctx.command('订阅远行商人 [args:text]', '订阅远行商人商品提醒')
@@ -92,7 +92,15 @@ export function register(deps: PluginDeps) {
         return `当前订阅商品：${sub.items.join('、')}`
       }
       const items = args.split(/\s+/).filter(Boolean)
-      merchantSubMgr.upsert(guildId, { items })
+      const existing = merchantSubMgr.get(guildId)
+      merchantSubMgr.upsert(guildId, {
+        group_id: guildId,
+        items,
+        mention_all: existing?.mention_all ?? false,
+        last_push_round: existing?.last_push_round ?? null,
+        last_matched_items: existing?.last_matched_items ?? [],
+        updated_by: session!.userId!,
+      })
       return `✅ 已订阅远行商人商品：${items.join('、')}`
     })
 
@@ -123,7 +131,11 @@ export function register(deps: PluginDeps) {
         if (matched.length) {
           const msg = `🔔 远行商人刷新提醒\n当前商品：${productNames.join('、')}\n匹配订阅：${matched.join('、')}`
           try {
-            await ctx.broadcast([`${ctx.bots[0].platform}:${guildId}`], msg)
+            if (!ctx.bots.length) { logger.warn('无可用 bot，跳过推送'); continue }
+            const platform = sub.platform || ctx.bots[0]?.platform
+            if (!platform) { logger.warn(`推送失败 ${guildId}: 无法确定平台`); continue }
+            const channelId = sub.channel_id ? `${platform}:${guildId}:${sub.channel_id}` : `${platform}:${guildId}`
+            await ctx.broadcast([channelId], msg)
           } catch (e) {
             logger.error(`推送失败 ${guildId}: ${e}`)
           }

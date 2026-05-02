@@ -1,6 +1,8 @@
 @font-face {
     font-family: 'Mianfeiziti';
-    src: url('{{_res_path}}ttf/SourceHanSansCN-Regular.ttf') format('truetype');
+    src: url('../../ttf/dundun.xHd_Ee5-.woff2') format('woff2'),
+         url('../../ttf/fzlant.D5FI9Et0.ttf') format('truetype');
+    font-display: swap;
 }
 
 :root {
@@ -14,15 +16,17 @@
 html, body {
     margin: 0;
     padding: 30px;
-    background: url("{{_res_path}}img/bg.C8CUoi7I.jpg") no-repeat center top;
+    background: url("../../img/bg.C8CUoi7I.jpg") no-repeat center top;
     background-size: cover;
     font-size: 100px;
     font-family: 'Mianfeiziti', system-ui, -apple-system, sans-serif;
 }
 
 .lineup-page {
-    max-width: 12.8rem;
+    max-width: 14.8rem;
     margin: 0 auto;
+    padding: 0 0.2rem; /* 左右各保留 20px 与内部卡片的安全距离 */
+    box-sizing: border-box;
 }
 
 /* ====== Header ====== */
@@ -51,15 +55,16 @@ html, body {
 /* ====== Lineup Grid ====== */
 .lineup-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.2rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.24rem;
 }
 
 .lineup-card {
     background: var(--card-bg);
     border-radius: 0.12rem;
-    padding: 0.2rem;
+    padding: 0.24rem;
     position: relative;
+    overflow: hidden;
 }
 
 /* Card Header */
@@ -98,12 +103,11 @@ html, body {
 
 /* Pet List */
 .pet-list {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.08rem;
     margin-bottom: 0.15rem;
-    justify-content: space-between;
+    align-items: start;
 }
 
 .pet-card {
@@ -113,8 +117,7 @@ html, body {
     gap: 0.04rem;
     background: rgba(0, 0, 0, 0.05);
     border-radius: 0.06rem;
-    padding: 0.06rem;
-    flex: 1;
+    padding: 0.05rem 0.04rem;
     min-width: 0;
 }
 
@@ -155,15 +158,15 @@ html, body {
 }
 
 .skill-list {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, 0.16rem);
     gap: 0.02rem;
-    flex-wrap: nowrap;
     justify-content: center;
 }
 
 .skill-icon {
-    width: 0.18rem;
-    height: 0.18rem;
+    width: 0.16rem;
+    height: 0.16rem;
     border-radius: 0.02rem;
     border: 1px solid rgba(0, 0, 0, 0.1);
 }

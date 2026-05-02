@@ -113,9 +113,9 @@ export class Renderer {
           '.searcheggs-cont',
           '.bwiki-shell',
           '.skill-shell',
+          '.lineup-page',
           '.page-section-main',
           '.stats-cont',
-          '.lineup-page',
           '.inspect-page',
           '.player-search-page',
           '.ingame-shop-page',
@@ -137,19 +137,34 @@ export class Renderer {
         if (target) {
           const box = await target.boundingBox()
           if (box && box.width > 0 && box.height > 0) {
+            const elementMetrics = await page.evaluate((el: Element) => {
+              const rect = el.getBoundingClientRect()
+              const element = el as HTMLElement
+              return {
+                x: rect.left + window.scrollX,
+                y: rect.top + window.scrollY,
+                width: Math.max(rect.width, element.scrollWidth, element.offsetWidth),
+                height: Math.max(rect.height, element.scrollHeight, element.offsetHeight),
+              }
+            }, target)
+
             const capturePadding = TEMPLATE_CAPTURE_PADDING[templateName] || { left: 0, right: 0, top: 0, bottom: 0 }
             await page.setViewport({
-              width: Math.max(Math.ceil(box.x + box.width + capturePadding.right) + 8, 200),
-              height: Math.max(Math.ceil(box.y + box.height + capturePadding.bottom) + 8, 200),
+              width: Math.max(Math.ceil(elementMetrics.x + elementMetrics.width + capturePadding.right) + 8, 200),
+              height: Math.max(Math.ceil(elementMetrics.y + elementMetrics.height + capturePadding.bottom) + 8, 200),
               deviceScaleFactor: 2,
             })
             await new Promise(resolve => setTimeout(resolve, 100))
 
-            if (capturePadding.left || capturePadding.right || capturePadding.top || capturePadding.bottom) {
-              const clipX = Math.max(0, box.x - capturePadding.left)
-              const clipY = Math.max(0, box.y - capturePadding.top)
-              const clipWidth = box.width + capturePadding.left + capturePadding.right
-              const clipHeight = box.height + capturePadding.top + capturePadding.bottom
+            const hasOverflow =
+              elementMetrics.width > box.width + 0.5 ||
+              elementMetrics.height > box.height + 0.5
+
+            if (capturePadding.left || capturePadding.right || capturePadding.top || capturePadding.bottom || hasOverflow) {
+              const clipX = Math.max(0, elementMetrics.x - capturePadding.left)
+              const clipY = Math.max(0, elementMetrics.y - capturePadding.top)
+              const clipWidth = elementMetrics.width + capturePadding.left + capturePadding.right
+              const clipHeight = elementMetrics.height + capturePadding.top + capturePadding.bottom
               const screenshot = await page.screenshot({
                 type: 'png',
                 clip: {

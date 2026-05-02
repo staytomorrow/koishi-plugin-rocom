@@ -8,17 +8,32 @@ import { pathToFileURL } from 'node:url'
 
 const logger = new Logger('rocom-render')
 
+type CapturePadding = {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}
+
+const TEMPLATE_CAPTURE_PADDING: Record<string, CapturePadding> = {
+  package: { left: 0, right: 0, top: 0, bottom: 0 },
+}
+
 function toDirectoryFileUrl(dirPath: string): string {
   const href = pathToFileURL(dirPath).href
   return href.endsWith('/') ? href : `${href}/`
 }
 
 function normalizeTemplateResourcePaths(content: string): string {
-  return content.replace(/\{\{(_res_path|pluResPath)\}\}render\//g, '{{$1}}')
+  return content.replace(/\{\{(_res_path|pluResPath)\}\}render\//g, '{{$1}}render-templates/')
 }
 
 export class Renderer {
   constructor(private resPath: string) {}
+
+  private getResourceRoot() {
+    return path.join(this.resPath, 'src')
+  }
 
   private getTemplateRoot() {
     return path.join(this.resPath, 'src', 'render-templates')
@@ -42,7 +57,7 @@ export class Renderer {
 
       const templateContent = fs.readFileSync(templatePath, 'utf-8')
       const normalizedTemplateContent = normalizeTemplateResourcePaths(templateContent)
-      const resPathUrl = toDirectoryFileUrl(this.getTemplateRoot())
+      const resPathUrl = toDirectoryFileUrl(this.getResourceRoot())
       const renderData = { ...data, _res_path: resPathUrl, pluResPath: resPathUrl }
       const html = template.render(normalizedTemplateContent, renderData)
 
@@ -56,6 +71,7 @@ export class Renderer {
       const tempHtmlPath = path.join(tempDir, `${templateName.replace(/[\\/]/g, '_')}.html`)
 
       try {
+        await page.setCacheEnabled(false)
         fs.writeFileSync(tempHtmlPath, html, 'utf-8')
 
         await page.setViewport({ width: 1280, height: 768, deviceScaleFactor: 2 })
@@ -121,12 +137,30 @@ export class Renderer {
         if (target) {
           const box = await target.boundingBox()
           if (box && box.width > 0 && box.height > 0) {
+            const capturePadding = TEMPLATE_CAPTURE_PADDING[templateName] || { left: 0, right: 0, top: 0, bottom: 0 }
             await page.setViewport({
-              width: Math.max(Math.ceil(box.width) + 8, 200),
-              height: Math.max(Math.ceil(box.height) + 8, 200),
+              width: Math.max(Math.ceil(box.x + box.width + capturePadding.right) + 8, 200),
+              height: Math.max(Math.ceil(box.y + box.height + capturePadding.bottom) + 8, 200),
               deviceScaleFactor: 2,
             })
             await new Promise(resolve => setTimeout(resolve, 100))
+
+            if (capturePadding.left || capturePadding.right || capturePadding.top || capturePadding.bottom) {
+              const clipX = Math.max(0, box.x - capturePadding.left)
+              const clipY = Math.max(0, box.y - capturePadding.top)
+              const clipWidth = box.width + capturePadding.left + capturePadding.right
+              const clipHeight = box.height + capturePadding.top + capturePadding.bottom
+              const screenshot = await page.screenshot({
+                type: 'png',
+                clip: {
+                  x: clipX,
+                  y: clipY,
+                  width: clipWidth,
+                  height: clipHeight,
+                },
+              })
+              return Buffer.isBuffer(screenshot) ? screenshot : Buffer.from(screenshot)
+            }
           }
           const screenshot = await target.screenshot({ type: 'png' })
           return Buffer.isBuffer(screenshot) ? screenshot : Buffer.from(screenshot)

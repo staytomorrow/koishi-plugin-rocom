@@ -340,7 +340,12 @@ export function register(deps: PluginDeps) {
         userUid: role.id || '',
         userAvatar: role.avatar_url || '',
         pageTitle: `背包 - ${category}精灵`, 
-        tabs: [{ name: '全部', active: category === '全部' }],
+        tabs: [
+          { text: '全部精灵', active: category === '全部' },
+          { text: '了不起精灵', active: category === '了不起' },
+          { text: '异色精灵', active: category === '异色' },
+          { text: '炫彩精灵', active: category === '炫彩' },
+        ],
         currentTab: `${category}精灵`, 
         totalCount: petRes.total || 0,
         accountLabel: role.name || '',

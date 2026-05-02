@@ -1,4 +1,4 @@
-@font-face {
+﻿@font-face {
     font-family: 'mianfeiziti';
     src: url('../../ttf/dundun.xHd_Ee5-.woff2') format('woff2'),
          url('../../ttf/dundun.BCbg_KoL.ttf') format('truetype');
@@ -12,7 +12,7 @@
 html, body {
     margin: 0;
     padding: 30px;
-    background: url("{{_res_path}}img/bg.C8CUoi7I.jpg") no-repeat center top;
+    background: url("../../img/bg.C8CUoi7I.jpg") no-repeat center top;
     background-size: cover;
     font-size: 100px; /* 1rem = 100px */
 }
@@ -27,9 +27,8 @@ body {
     min-width: 9rem;
     background-color: rgba(0, 0, 0, 0.4);
     border-radius: 0.2rem;
-    padding: 0.15rem 0.2rem 0.45rem; /* 增加底部留白以完整展示引导词 */
+    padding: 0.15rem 0.2rem 0.45rem;
     margin-bottom: 20px;
-    box-sizing: border-box;
     box-sizing: border-box;
 }
 
@@ -172,7 +171,7 @@ body {
 .spirit-card {
     width: 1.9rem;
     height: 2.6rem;
-    background: url("{{_res_path}}img/精灵pg.png") no-repeat center center;
+    background: url("../../img/精灵pg.png") no-repeat center center;
     background-size: 100% 100%;
     display: flex;
     flex-direction: column;
@@ -254,7 +253,7 @@ body {
     align-items: center;
     justify-content: center;
     position: absolute;
-    bottom: 0.04rem; 
+    bottom: -0.01rem; /* 下移 5px（1rem=100px） */
 }
 
 .stats-spirit-name span {

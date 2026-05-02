@@ -114,6 +114,7 @@ export class Renderer {
           '.bwiki-shell',
           '.skill-shell',
           '.lineup-page',
+          '.lineup-detail-page',
           '.page-section-main',
           '.stats-cont',
           '.inspect-page',

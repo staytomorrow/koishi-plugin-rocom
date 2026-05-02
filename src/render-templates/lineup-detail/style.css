@@ -1,6 +1,8 @@
 @font-face {
     font-family: 'Mianfeiziti';
-    src: url('{{_res_path}}ttf/SourceHanSansCN-Regular.ttf') format('truetype');
+    src: url('../../ttf/dundun.xHd_Ee5-.woff2') format('woff2'),
+         url('../../ttf/fzlant.D5FI9Et0.ttf') format('truetype');
+    font-display: swap;
 }
 
 :root {

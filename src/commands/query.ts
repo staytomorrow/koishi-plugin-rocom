@@ -212,6 +212,25 @@ function parseExchangeWantText(raw: unknown): string {
   return names[0] || '交友'
 }
 
+function normalizeLineupLookupId(rawValue: unknown): string {
+  const text = String(rawValue ?? '').trim()
+  if (!text) return ''
+  const match = text.match(/\d+/)
+  return match ? match[0] : text
+}
+
+function isTargetLineup(lineup: any, lineupId: string): boolean {
+  const target = normalizeLineupLookupId(lineupId)
+  if (!target) return false
+  const candidates = new Set([
+    normalizeLineupLookupId(lineup?.id),
+    normalizeLineupLookupId(lineup?.code),
+    normalizeLineupLookupId(lineup?.lineup_code),
+  ])
+  candidates.delete('')
+  return candidates.has(target)
+}
+
 export function register(deps: PluginDeps) {
   const { ctx, client } = deps
 
@@ -545,6 +564,60 @@ export function register(deps: PluginDeps) {
       }
 
       await sendImage(deps, session, 'lineup', data, `【阵容推荐】${category || '热门'} 第${pageNo}页`)
+    })
+
+  ctx.command('查看阵容 <lineupId:string>', '查看阵容详情')
+    .alias('阵容详情')
+    .action(async ({ session }, lineupId) => {
+      const normalizedLineupId = normalizeLineupLookupId(lineupId)
+      if (!normalizedLineupId) return '请提供有效的阵容码。用法：查看阵容 <阵容码>'
+
+      const fwToken = await getPrimaryToken(deps, session!.userId!)
+      if (!fwToken) return notLoggedInHint()
+
+      const userIdentifier = session!.userId!
+      const firstPageRes = await client.getLineupList(ctx, fwToken, 1, '', userIdentifier)
+      if (!firstPageRes?.lineups) return '获取阵容数据失败。'
+
+      let targetLineup = (firstPageRes.lineups || []).find((lineup: any) => isTargetLineup(lineup, normalizedLineupId))
+
+      if (!targetLineup) {
+        const totalPages = Math.max(1, Number(firstPageRes.total_pages) || 1)
+        const maxSearchPage = Math.min(totalPages, 10)
+        for (let page = 2; page <= maxSearchPage; page++) {
+          const pageRes = await client.getLineupList(ctx, fwToken, page, '', userIdentifier)
+          const lineups = pageRes?.lineups || []
+          targetLineup = lineups.find((lineup: any) => isTargetLineup(lineup, normalizedLineupId))
+          if (targetLineup) break
+        }
+      }
+
+      if (!targetLineup) return `未找到阵容码为 ${normalizedLineupId} 的阵容。`
+
+      const lineupData = targetLineup.lineup || {}
+      const processedPets = (lineupData.pets || []).map((pet: any) => ({
+        pet_name: pet.pet_name || '',
+        pet_img_url: pet.pet_img_url || '',
+        skills: (pet.skills_info || []).map((skill: any) => skill.skill_img_url || '').filter(Boolean),
+        bloodline: Boolean(pet.bloodline_info),
+        bloodline_icon: pet.bloodline_info?.icon || '',
+      }))
+
+      const data = {
+        lineup: {
+          name: targetLineup.name || '',
+          tags: targetLineup.tags || [],
+          pets: processedPets,
+          author_name: targetLineup.author_name || '',
+          author_avatar: targetLineup.author_avatar || '',
+          likes: targetLineup.likes || 0,
+          lineup_code: normalizedLineupId,
+        },
+        fallbackPetImage: '{{_res_path}}img/roco_icon.png',
+      }
+
+      const fallback = `【阵容详情】${targetLineup.name || '未知阵容'} | 阵容码: ${normalizedLineupId}`
+      await sendImage(deps, session, 'lineup-detail', data, fallback)
     })
 
   ctx.command('洛克交换大厅 [page:number]', '查看交换大厅')

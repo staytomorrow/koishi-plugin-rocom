@@ -73,6 +73,145 @@ function playerField(parsed: ReturnType<typeof parseIngamePlayerPayload> | null,
   const value = cleanPlayerFieldValue(field, raw)
   return value && value !== '-' && value !== '未设置' ? value : defaultValue
 }
+
+function tryParseJson(text: string): unknown | null {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+function extractTopLevelJsonSegments(text: string): string[] {
+  const segments: string[] = []
+  let start = -1
+  let depth = 0
+  let quote: '"' | '\'' | '' = ''
+  let escaped = false
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+
+    if (quote) {
+      if (escaped) {
+        escaped = false
+        continue
+      }
+      if (ch === '\\') {
+        escaped = true
+        continue
+      }
+      if (ch === quote) quote = ''
+      continue
+    }
+
+    if (ch === '"' || ch === '\'') {
+      quote = ch as '"' | '\''
+      continue
+    }
+
+    if (ch === '{' || ch === '[') {
+      if (depth === 0) start = i
+      depth++
+      continue
+    }
+
+    if (ch === '}' || ch === ']') {
+      if (depth <= 0) continue
+      depth--
+      if (depth === 0 && start >= 0) {
+        segments.push(text.slice(start, i + 1))
+        start = -1
+      }
+    }
+  }
+
+  return segments
+}
+
+function collectExchangeItemNames(input: unknown, output: Set<string>) {
+  if (input == null) return
+
+  if (Array.isArray(input)) {
+    for (const item of input) collectExchangeItemNames(item, output)
+    return
+  }
+
+  if (typeof input === 'object') {
+    const record = input as Record<string, unknown>
+    const preferredKeys = ['name', 'item_name', 'title', 'label', 'text', 'value']
+    let consumedPreferred = false
+
+    for (const key of preferredKeys) {
+      if (record[key] == null) continue
+      consumedPreferred = true
+      collectExchangeItemNames(record[key], output)
+    }
+
+    if (!consumedPreferred) {
+      for (const value of Object.values(record)) collectExchangeItemNames(value, output)
+    }
+    return
+  }
+
+  if (typeof input === 'string') {
+    const text = input.trim()
+    if (!text) return
+
+    const direct = tryParseJson(text)
+    if (direct != null) {
+      collectExchangeItemNames(direct, output)
+      return
+    }
+
+    const unescaped = text.replace(/\\"/g, '"')
+    if (unescaped !== text) {
+      const escapedParsed = tryParseJson(unescaped)
+      if (escapedParsed != null) {
+        collectExchangeItemNames(escapedParsed, output)
+        return
+      }
+    }
+
+    const chunks = extractTopLevelJsonSegments(text)
+    let parsedFromChunks = false
+    for (const chunk of chunks) {
+      const parsed = tryParseJson(chunk)
+      if (parsed == null) continue
+      parsedFromChunks = true
+      collectExchangeItemNames(parsed, output)
+    }
+    if (parsedFromChunks) return
+
+    const nameRegex = /["']name["']\s*:\s*["']([^"']+)["']/g
+    let matched = false
+    for (let match = nameRegex.exec(text); match; match = nameRegex.exec(text)) {
+      const candidate = match[1]?.trim()
+      if (!candidate) continue
+      output.add(candidate)
+      matched = true
+    }
+    if (matched) return
+
+    output.add(text)
+    return
+  }
+
+  const text = String(input).trim()
+  if (text) output.add(text)
+}
+
+function parseExchangeItems(raw: unknown): string[] {
+  const names = new Set<string>()
+  collectExchangeItemNames(raw, names)
+  return [...names]
+}
+
+function parseExchangeWantText(raw: unknown): string {
+  const names = parseExchangeItems(raw)
+  return names[0] || '交友'
+}
+
 export function register(deps: PluginDeps) {
   const { ctx, client } = deps
 
@@ -422,16 +561,21 @@ export function register(deps: PluginDeps) {
         filterLabel: '全部',
         posts: (res.posters || []).map((poster: any) => {
           const user = poster.user_info || {}
+          const provideItems = parseExchangeItems(
+            poster.offer_items ?? poster.offer_item_names ?? poster.offerItems ?? [],
+          )
           return {
             userName: user.nickname || '?',
             userLevel: user.level || 0,
             isOnline: user.online_status === 1,
             avatarUrl: user.avatar_url || '',
             userId: user.role_id || '',
-            wantText: poster.want_item_name || '交友',
+            wantText: parseExchangeWantText(
+              poster.want_item_name ?? poster.want_item ?? poster.wantText ?? '交友',
+            ),
             wantBadgeUrl: '',
             isExpired: false,
-            provideItems: (poster.offer_items || []).map((item: any) => ({ name: item.name || item })),
+            provideItems: provideItems.length > 0 ? provideItems : ['暂无'],
             timeLabel: poster.create_time
               ? new Date(Number(poster.create_time) * 1000).toLocaleString('zh-CN', {
                 month: '2-digit',

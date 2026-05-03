@@ -40,6 +40,8 @@ export class Renderer {
   }
 
   private getTemplatePath(templateName: string) {
+    const directHtmlPath = path.join(this.getTemplateRoot(), `${templateName}.html`)
+    if (fs.existsSync(directHtmlPath)) return directHtmlPath
     return path.join(this.getTemplateRoot(), templateName, 'index.html')
   }
 

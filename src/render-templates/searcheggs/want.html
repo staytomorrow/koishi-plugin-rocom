@@ -12,6 +12,9 @@
     .father-card-name { font-size: 24px; font-weight: 700; color: #4b3524; }
     .father-card-meta { margin-top: 8px; color: #735640; font-size: 17px; line-height: 1.7; }
     .warn-box { margin-top: 16px; padding: 16px 18px; border-radius: 14px; background: rgba(240, 98, 82, 0.12); color: #8a3d2e; font-size: 18px; }
+    .pagination-footer { margin-top: 22px; display: flex; justify-content: space-between; gap: 14px; color: #8c7a61; font-size: 14px; }
+    .pagination-hint { max-width: 70%; }
+    .copyright { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -28,16 +31,16 @@
       <div class="want-meta">
         属性：{{target.type_label}}<br>
         蛋组：{{egg_groups_label}}<br>
-        性别比：雄性 {{male_rate if male_rate is not none else "?"}}% ｜ 雌性 {{female_rate if female_rate is not none else "?"}}%
+        性别比：雄性 {{if male_rate != null}}{{male_rate}}{{else}}?{{/if}}% ｜ 雌性 {{if female_rate != null}}{{female_rate}}{{else}}?{{/if}}%
       </div>
 
-      {% if is_undiscovered %}
+      {{if is_undiscovered}}
       <div class="warn-box">该精灵属于未发现蛋组，无法通过常规配种获得。</div>
-      {% elif not fathers %}
+      {{else if !fathers || !fathers.length}}
       <div class="warn-box">没有找到可与该目标精灵共享蛋组的父体候选。</div>
-      {% else %}
+      {{else}}
       <div class="father-grid">
-        {% for item in fathers %}
+        {{each fathers item}}
         <div class="father-card">
           <div class="father-card-name">{{item.name}} #{{item.id}}</div>
           <div class="father-card-meta">
@@ -46,9 +49,9 @@
             身高：{{item.height_label}} ｜ 体重：{{item.weight_label}}
           </div>
         </div>
-        {% endfor %}
+        {{/each}}
       </div>
-      {% endif %}
+      {{/if}}
     </div>
 
     <div class="pagination-footer">

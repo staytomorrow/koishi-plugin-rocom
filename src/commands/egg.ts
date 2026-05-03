@@ -1,16 +1,63 @@
-import { h } from 'koishi'
 import { PluginDeps } from '../types'
-import { formatEggGroups } from '../egg-service'
+import { SearchResult } from '../egg-service'
+import { sendImageWithFallback } from '../send-image'
 
-function petIconUrl(petId: any): string {
-  const n = Number(petId)
-  if (isNaN(n)) return ''
-  const aid = n >= 3000 ? n : n + 3000
-  return `https://game.gtimg.cn/images/rocom/rocodata/jingling/${aid}/icon.png`
+type ParsedHeight = {
+  dataValue: number
+  meterValue: number
+  display: string
 }
 
 function petName(p: any): string {
   return p?.localized?.zh?.name || p?.name || '???'
+}
+
+function parseHeightValue(raw: unknown): ParsedHeight | null {
+  const text = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^(身高|高度|h)\s*/i, '')
+    .trim()
+  const match = text.match(/^([0-9]+(?:\.[0-9]+)?)(?:\s*(m|米))?$/)
+  if (!match) return null
+  const meterValue = Number(match[1])
+  if (!Number.isFinite(meterValue)) return null
+  return {
+    dataValue: meterValue * 100,
+    meterValue,
+    display: `${formatNumber(meterValue)} m`,
+  }
+}
+
+function parseWeightValue(raw: unknown): number | null {
+  const text = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^(体重|重量|w)\s*/i, '')
+    .trim()
+  const match = text.match(/^([0-9]+(?:\.[0-9]+)?)(?:\s*(kg|千克|公斤))?$/)
+  if (!match) return null
+  const value = Number(match[1])
+  return Number.isFinite(value) ? value : null
+}
+
+function formatNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(4)))
+}
+
+function searchResultCandidates(result: SearchResult): any[] {
+  return result.candidates || []
+}
+
+async function sendEggImage(
+  deps: PluginDeps,
+  session: any,
+  templateName: string,
+  data: any,
+  fallback: string,
+) {
+  const png = await deps.renderer.renderHtml(deps.ctx, templateName, data)
+  await sendImageWithFallback(session, png, fallback, `egg:${templateName}`)
 }
 
 export function register(deps: PluginDeps) {
@@ -18,52 +65,157 @@ export function register(deps: PluginDeps) {
 
   ctx.command('洛克查蛋 [arg1:string] [arg2:string]', '查询精灵蛋组')
     .alias('查蛋')
-    .action(async (_, arg1, arg2) => {
-      if (!arg1) return '🥚 查蛋用法：\n  洛克查蛋 <精灵名>\n  洛克查蛋 25 1.5\n  洛克查蛋 25'
-      const n1 = parseFloat(arg1)
-      if (!isNaN(n1)) {
-        const n2 = arg2 ? parseFloat(arg2) : NaN
-        const height = n1
-        const weight = isNaN(n2) ? undefined : n2
-        const results = eggService.searchBySize(height, weight)
-        return eggService.buildSizeSearchText(height, weight, results)
+    .action(async ({ session }, arg1, arg2) => {
+      if (!arg1) {
+        return [
+          '查蛋用法：',
+          '  洛克查蛋 <精灵名>',
+          '  洛克查蛋 0.18 1.5',
+          '  洛克查蛋 0.18m 1.5kg',
+          '  洛克查蛋 身高0.18m 体重1.5kg',
+        ].join('\n')
       }
-      const name = [arg1, arg2].filter(Boolean).join(' ')
+
+      let height: number | undefined
+      let heightMeters: number | undefined
+      let heightDisplay: string | undefined
+      let weight: number | undefined
+      const nameParts: string[] = []
+      const numericArgs: Array<{ height: ParsedHeight | null; weight: number | null }> = []
+
+      for (const rawArg of [arg1, arg2]) {
+        if (!rawArg) continue
+        const arg = String(rawArg).trim()
+        const explicitHeight = /^(身高|高度|h)/i.test(arg)
+        const explicitWeight = /^(体重|重量|w)/i.test(arg)
+
+        if (explicitHeight) {
+          const parsed = parseHeightValue(arg)
+          if (parsed) {
+            height = parsed.dataValue
+            heightMeters = parsed.meterValue
+            heightDisplay = parsed.display
+            continue
+          }
+        }
+
+        if (explicitWeight) {
+          const parsed = parseWeightValue(arg)
+          if (parsed != null) {
+            weight = parsed
+            continue
+          }
+        }
+
+        const heightCandidate = parseHeightValue(arg)
+        const weightCandidate = parseWeightValue(arg)
+        if (heightCandidate || weightCandidate != null) {
+          numericArgs.push({ height: heightCandidate, weight: weightCandidate })
+        } else {
+          nameParts.push(arg)
+        }
+      }
+
+      if (numericArgs.length) {
+        if (height == null && numericArgs[0]?.height) {
+          height = numericArgs[0].height.dataValue
+          heightMeters = numericArgs[0].height.meterValue
+          heightDisplay = numericArgs[0].height.display
+        }
+        if (weight == null && numericArgs[1]?.weight != null) {
+          weight = numericArgs[1].weight
+        }
+      }
+
+      if (height != null || weight != null) {
+        let data: any | null = null
+        let fallback = ''
+
+        if (height != null && weight != null) {
+          const backendResults = await client.queryPetSize(ctx, heightMeters ?? height / 100, weight)
+          if (backendResults) {
+            data = eggService.buildSizeSearchDataFromApi(height, weight, backendResults, heightDisplay)
+            fallback = eggService.buildSizeSearchTextFromApi(height, weight, backendResults, heightDisplay)
+          }
+        }
+
+        if (!data) {
+          const results = eggService.searchBySize(height, weight)
+          data = eggService.buildSizeSearchData(height, weight, results, heightDisplay)
+          fallback = eggService.buildSizeSearchText(height, weight, results, heightDisplay)
+        }
+
+        await sendEggImage(deps, session, 'searcheggs/size', data, fallback)
+        return
+      }
+
+      const name = nameParts.join(' ')
+      if (!name) return '请输入精灵名称。用法：洛克查蛋 <精灵名>'
+
       const sr = eggService.search(name)
       if (sr.matchType === 'multi') {
-        const names = sr.candidates!.slice(0, 8).map(petName).join('、')
-        return `找到多个结果：${names}\n请使用更精确的名称重新查询。`
+        const candidates = searchResultCandidates(sr)
+        const data = eggService.buildCandidatesRenderData(name, candidates)
+        await sendEggImage(deps, session, 'searcheggs/candidates', data, eggService.buildCandidatesText(name, candidates))
+        return
       }
-      if (sr.matchType === 'not_found') return `❌ 未找到名为「${name}」的精灵。`
+      if (sr.matchType === 'not_found') return `未找到名为「${name}」的精灵，请检查名称后重试。`
+
       const pet = sr.pet
-      return eggService.buildSearchText(pet)
+      const data = eggService.buildSearchData(pet)
+      data.commandHint = '洛克查蛋 <名称> | 洛克查蛋 身高0.18m 体重1.5kg | 洛克配种 <父体> <母体>'
+      data.copyright = 'Koishi & WeGame 洛克王国插件'
+      const hint = sr.matchType === 'fuzzy' ? `模糊匹配到「${petName(pet)}」\n` : ''
+      await sendEggImage(deps, session, 'searcheggs', data, hint + eggService.buildSearchText(pet))
     })
 
   ctx.command('洛克配种 <nameA:string> [nameB:string]', '配种查询')
     .alias('配种')
-    .action(async (_, nameA, nameB) => {
-      if (!nameA) return '🥚 配种用法：\n  洛克配种 <父体> <母体>\n  洛克配种 <精灵名>'
+    .action(async ({ session }, nameA, nameB) => {
+      if (!nameA) {
+        return [
+          '配种用法：',
+          '  洛克配种 <父体> <母体>',
+          '  洛克配种 <精灵名>',
+        ].join('\n')
+      }
+
       if (!nameB) {
         const sr = eggService.search(nameA)
         if (sr.matchType === 'multi') {
-          const names = sr.candidates!.slice(0, 8).map(petName).join('、')
-          return `找到多个结果：${names}\n请使用更精确的名称重新查询。`
+          const candidates = searchResultCandidates(sr)
+          const data = eggService.buildCandidatesRenderData(nameA, candidates)
+          await sendEggImage(deps, session, 'searcheggs/candidates', data, eggService.buildCandidatesText(nameA, candidates))
+          return
         }
-        if (sr.matchType === 'not_found') return `❌ 未找到名为「${nameA}」的精灵。`
-        return eggService.buildWantPetText(sr.pet)
+        if (sr.matchType === 'not_found') return `未找到名为「${nameA}」的精灵。`
+
+        const data = eggService.buildWantPetData(sr.pet)
+        await sendEggImage(deps, session, 'searcheggs/want', data, eggService.buildWantPetText(sr.pet))
+        return
       }
+
       const srA = eggService.search(nameA)
       if (srA.matchType === 'multi') {
-        const names = srA.candidates!.slice(0, 8).map(petName).join('、')
-        return `找到多个结果：${names}\n请使用更精确的名称重新查询。`
+        const candidates = searchResultCandidates(srA)
+        const data = eggService.buildCandidatesRenderData(nameA, candidates)
+        await sendEggImage(deps, session, 'searcheggs/candidates', data, eggService.buildCandidatesText(nameA, candidates))
+        return
       }
-      if (srA.matchType === 'not_found') return `❌ 未找到名为「${nameA}」的精灵。`
+      if (srA.matchType === 'not_found') return `未找到名为「${nameA}」的精灵。`
+
       const srB = eggService.search(nameB)
       if (srB.matchType === 'multi') {
-        const names = srB.candidates!.slice(0, 8).map(petName).join('、')
-        return `找到多个结果：${names}\n请使用更精确的名称重新查询。`
+        const candidates = searchResultCandidates(srB)
+        const data = eggService.buildCandidatesRenderData(nameB, candidates)
+        await sendEggImage(deps, session, 'searcheggs/candidates', data, eggService.buildCandidatesText(nameB, candidates))
+        return
       }
-      if (srB.matchType === 'not_found') return `❌ 未找到名为「${nameB}」的精灵。`
-      return eggService.buildPairText(srB.pet, srA.pet)
+      if (srB.matchType === 'not_found') return `未找到名为「${nameB}」的精灵。`
+
+      const data = eggService.buildPairData(srB.pet, srA.pet)
+      data.commandHint = '默认前父后母，孵蛋结果跟随母体 | 洛克配种 <精灵名> 查询怎么孵'
+      data.copyright = 'Koishi & WeGame 洛克王国插件'
+      await sendEggImage(deps, session, 'searcheggs/pair', data, eggService.buildPairText(srB.pet, srA.pet))
     })
 }

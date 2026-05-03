@@ -60,11 +60,11 @@ body {
 }
 
 .header-title {
-    color: var(--color-gold);
+    color: #1f1f1f;
     font-size: 36px;
     font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    -webkit-text-stroke: 1.5px #d4842b;
+    text-shadow: none;
+    -webkit-text-stroke: 0;
     letter-spacing: 2px;
 }
 

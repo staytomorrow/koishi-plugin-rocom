@@ -9,6 +9,9 @@
     .search-card-title { display: flex; justify-content: space-between; gap: 12px; font-size: 28px; font-weight: 700; color: #4d3624; }
     .search-card-meta { margin-top: 10px; color: #75563d; font-size: 18px; line-height: 1.7; }
     .search-empty { text-align: center; font-size: 24px; color: #6f5845; padding: 48px 24px; }
+    .pagination-footer { margin-top: 22px; display: flex; justify-content: space-between; gap: 14px; color: #8c7a61; font-size: 14px; }
+    .pagination-hint { max-width: 70%; }
+    .copyright { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -20,9 +23,9 @@
       </div>
     </div>
 
-    {% if candidates %}
+    {{if candidates && candidates.length}}
     <div class="search-card-list">
-      {% for item in candidates %}
+      {{each candidates item}}
       <div class="search-card-item">
         <div class="search-card-title">
           <span>{{item.name}}</span>
@@ -34,11 +37,11 @@
           身高：{{item.height_label}} ｜ 体重：{{item.weight_label}}
         </div>
       </div>
-      {% endfor %}
+      {{/each}}
     </div>
-    {% else %}
+    {{else}}
     <div class="search-empty">没有可展示的候选结果</div>
-    {% endif %}
+    {{/if}}
 
     <div class="pagination-footer">
       <span class="pagination-hint">{{commandHint}}</span>

@@ -60,10 +60,25 @@ function wt(v: number | null | undefined): number | null {
   return v != null ? Math.round(v / 1000 * 10) / 10 : null
 }
 
+function ht(v: number | null | undefined): number | null {
+  return v != null ? Math.round(v) / 100 : null
+}
+
 function fmtRange(lo: number | null, hi: number | null, u: string): string {
   if (lo == null && hi == null) return '暂无数据'
   if (lo != null && hi != null) return lo === hi ? `${lo}${u}` : `${lo}-${hi}${u}`
   return `${lo ?? hi}${u}`
+}
+
+function num(value: any): number | null {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function formatNumber(value: any, digits = 2): string {
+  const parsed = num(value)
+  if (parsed == null) return ''
+  return String(Number(parsed.toFixed(digits)))
 }
 
 function assetPetId(petId: any): number | null {
@@ -172,6 +187,184 @@ export class EggService {
     return { perfect: perfect.slice(0, 20), range: range.slice(0, 20) }
   }
 
+  private formatMatchSummary(probability?: any, matchCount?: any): string {
+    const parts: string[] = []
+    if (probability != null) parts.push(`匹配率 ${formatNumber(probability)}%`)
+    if (matchCount != null) parts.push(`命中次数 ${formatNumber(matchCount, 0)}`)
+    return parts.join(' / ')
+  }
+
+  private calcLocalMatchInfo(
+    queryHeight?: number,
+    queryWeight?: number,
+    heightMin?: number | null,
+    heightMax?: number | null,
+    weightMin?: number | null,
+    weightMax?: number | null,
+  ): { probability: number | null; matchCount: number | null } {
+    const scores: number[] = []
+    if (queryHeight != null) {
+      const score = this.rangeMatchScore(ht(queryHeight), heightMin, heightMax)
+      if (score != null) scores.push(score)
+    }
+    if (queryWeight != null) {
+      const score = this.rangeMatchScore(queryWeight, weightMin, weightMax)
+      if (score != null) scores.push(score)
+    }
+    if (!scores.length) return { probability: null, matchCount: null }
+    return {
+      probability: scores.reduce((sum, score) => sum + score, 0) / scores.length,
+      matchCount: scores.length,
+    }
+  }
+
+  private rangeMatchScore(value: any, low: any, high: any): number | null {
+    const valueNum = num(value)
+    const lowNum = num(low)
+    const highNum = num(high)
+    if (valueNum == null || lowNum == null || highNum == null) return null
+    if (lowNum <= valueNum && valueNum <= highNum) return 100
+
+    let tolerance: number
+    let distance: number
+    if (valueNum < lowNum) {
+      tolerance = Math.max(lowNum * 0.15, 0.0001)
+      distance = lowNum - valueNum
+    } else {
+      tolerance = Math.max(highNum * 0.15, 0.0001)
+      distance = valueNum - highNum
+    }
+    if (distance > tolerance) return 0
+    return Math.max(0, 100 * (1 - distance / tolerance))
+  }
+
+  private formatPetCard(pet: any, queryHeight?: number, queryWeight?: number) {
+    const br = pet?.breeding || {}
+    const eggGroups = this.getEggGroups(pet)
+    const heightMin = ht(br.height_low)
+    const heightMax = ht(br.height_high)
+    const weightMin = wt(br.weight_low)
+    const weightMax = wt(br.weight_high)
+    const { probability, matchCount } = this.calcLocalMatchInfo(
+      queryHeight,
+      queryWeight,
+      heightMin,
+      heightMax,
+      weightMin,
+      weightMax,
+    )
+
+    return {
+      id: pet?.id,
+      name: petName(pet),
+      icon: petIconUrl(pet?.id),
+      image: petImageUrl(pet?.id),
+      type_label: petType(pet),
+      egg_group_ids: eggGroups,
+      egg_groups_label: formatEggGroups(eggGroups),
+      height_min: heightMin,
+      height_max: heightMax,
+      height_label: fmtRange(heightMin, heightMax, 'm'),
+      weight_min: weightMin,
+      weight_max: weightMax,
+      weight_label: fmtRange(weightMin, weightMax, 'kg'),
+      probability,
+      match_count: matchCount,
+      match_info_label: this.formatMatchSummary(probability, matchCount),
+    }
+  }
+
+  private formatSizeApiCard(item: any) {
+    const probability = num(item?.probability)
+    const matchCount = num(item?.matchCount)
+    const heightMin = num(item?.diameterMin)
+    const heightMax = num(item?.diameterMax)
+    const weightMin = num(item?.weightMin)
+    const weightMax = num(item?.weightMax)
+
+    return {
+      id: item?.petId || '-',
+      name: item?.pet || '未知精灵',
+      icon: item?.petIcon || petIconUrl(item?.petId),
+      image: item?.petImage || petImageUrl(item?.petId),
+      type_label: '后端未提供',
+      egg_group_ids: [],
+      egg_groups_label: '后端未提供',
+      height_min: heightMin,
+      height_max: heightMax,
+      height_label: fmtRange(heightMin, heightMax, 'm'),
+      weight_min: weightMin,
+      weight_max: weightMax,
+      weight_label: fmtRange(weightMin, weightMax, 'kg'),
+      probability,
+      match_count: matchCount,
+      match_info_label: this.formatMatchSummary(probability, matchCount),
+    }
+  }
+
+  private mergeCardsByName(perfect: any[], ranged: any[]): [any[], any[]] {
+    const perfectMap = new Map<string, any>()
+    const rangedMap = new Map<string, any>()
+    const keyOf = (item: any) => String(item?.name || item?.id || '').replace(/\s+/g, '')
+    const add = (target: Map<string, any>, item: any) => {
+      const key = keyOf(item)
+      if (!key) return
+      target.set(key, target.has(key) ? this.mergeSizeCard(target.get(key), item) : item)
+    }
+
+    for (const item of perfect) add(perfectMap, item)
+    for (const item of ranged) {
+      const key = keyOf(item)
+      if (key && perfectMap.has(key)) {
+        perfectMap.set(key, this.mergeSizeCard(perfectMap.get(key), item))
+      } else {
+        add(rangedMap, item)
+      }
+    }
+    return [[...perfectMap.values()], [...rangedMap.values()]]
+  }
+
+  private mergeSizeCard(left: any, right: any) {
+    const unique = (values: any[]) => [...new Set(values.filter(value => value != null && value !== '').map(value => String(value)))]
+    const ids = unique([...String(left?.id || '').split('/'), ...String(right?.id || '').split('/')]
+      .map(value => value.trim().replace(/^#/, '')))
+    const eggGroupIds = unique([...(left?.egg_group_ids || []), ...(right?.egg_group_ids || [])]).map(Number)
+    const probabilityValues = [num(left?.probability), num(right?.probability)].filter(value => value != null) as number[]
+    const matchCountValues = [num(left?.match_count), num(right?.match_count)].filter(value => value != null) as number[]
+    const heightMin = this.minValue(left?.height_min, right?.height_min)
+    const heightMax = this.maxValue(left?.height_max, right?.height_max)
+    const weightMin = this.minValue(left?.weight_min, right?.weight_min)
+    const weightMax = this.maxValue(left?.weight_max, right?.weight_max)
+    const probability = probabilityValues.length ? probabilityValues.reduce((sum, value) => sum + value, 0) : null
+    const matchCount = matchCountValues.length ? matchCountValues.reduce((sum, value) => sum + value, 0) : null
+
+    return {
+      ...left,
+      id: ids.join('/'),
+      egg_group_ids: eggGroupIds,
+      egg_groups_label: eggGroupIds.length ? formatEggGroups(eggGroupIds) : unique([left?.egg_groups_label, right?.egg_groups_label]).join(' / ') || left?.egg_groups_label,
+      probability,
+      match_count: matchCount,
+      match_info_label: this.formatMatchSummary(probability, matchCount),
+      height_min: heightMin,
+      height_max: heightMax,
+      height_label: fmtRange(heightMin, heightMax, 'm'),
+      weight_min: weightMin,
+      weight_max: weightMax,
+      weight_label: fmtRange(weightMin, weightMax, 'kg'),
+    }
+  }
+
+  private minValue(...values: any[]): number | null {
+    const numbers = values.map(num).filter(value => value != null) as number[]
+    return numbers.length ? Math.min(...numbers) : null
+  }
+
+  private maxValue(...values: any[]): number | null {
+    const numbers = values.map(num).filter(value => value != null) as number[]
+    return numbers.length ? Math.max(...numbers) : null
+  }
+
   getCompatiblePets(pet: any): any[] {
     const groups = new Set(this.getEggGroups(pet))
     if (!groups.size || groups.has(1)) return []
@@ -218,9 +411,9 @@ export class EggService {
   }
   // ─── 文本构建 ───
 
-  buildSizeSearchText(height?: number, weight?: number, results?: { perfect: any[]; range: any[] }): string {
+  buildSizeSearchText(height?: number, weight?: number, results?: { perfect: any[]; range: any[] }, heightDisplay?: string): string {
     const cond: string[] = []
-    if (height != null) cond.push(`身高=${height}cm`)
+    if (height != null) cond.push(`身高=${heightDisplay || fmtRange(ht(height), ht(height), 'm')}`)
     if (weight != null) cond.push(`体重=${weight}kg`)
     const condStr = cond.join(' + ')
     if (!results || (!results.perfect.length && !results.range.length)) return `❌ 未找到符合 ${condStr} 的精灵。`
@@ -229,7 +422,7 @@ export class EggService {
       lines.push(`✅ 完美匹配 ${condStr} 的精灵（共 ${results.perfect.length} 只）：`)
       results.perfect.slice(0, 10).forEach((p, i) => {
         const br = p.breeding || {}
-        lines.push(`  ${i + 1}. ${petName(p)} (#${p.id}) — ${fmtRange(br.height_low, br.height_high, 'cm')} / ${fmtRange(wt(br.weight_low), wt(br.weight_high), 'kg')} · ${formatEggGroups(this.getEggGroups(p))}`)
+        lines.push(`  ${i + 1}. ${petName(p)} (#${p.id}) — ${fmtRange(ht(br.height_low), ht(br.height_high), 'm')} / ${fmtRange(wt(br.weight_low), wt(br.weight_high), 'kg')} · ${formatEggGroups(this.getEggGroups(p))}`)
       })
     }
     if (results.range.length) {
@@ -237,15 +430,15 @@ export class EggService {
       lines.push(`🔍 范围匹配 ${condStr} 的精灵（共 ${results.range.length} 只，容差±15%）：`)
       results.range.slice(0, 10).forEach((p, i) => {
         const br = p.breeding || {}
-        lines.push(`  ${i + 1}. ${petName(p)} (#${p.id}) — ${fmtRange(br.height_low, br.height_high, 'cm')} / ${fmtRange(wt(br.weight_low), wt(br.weight_high), 'kg')} · ${formatEggGroups(this.getEggGroups(p))}`)
+        lines.push(`  ${i + 1}. ${petName(p)} (#${p.id}) — ${fmtRange(ht(br.height_low), ht(br.height_high), 'm')} / ${fmtRange(wt(br.weight_low), wt(br.weight_high), 'kg')} · ${formatEggGroups(this.getEggGroups(p))}`)
       })
     }
     return lines.join('\n')
   }
 
-  buildSizeSearchTextFromApi(height?: number, weight?: number, results?: any): string {
+  buildSizeSearchTextFromApi(height?: number, weight?: number, results?: any, heightDisplay?: string): string {
     const cond: string[] = []
-    if (height != null) cond.push(`身高=${height}cm`)
+    if (height != null) cond.push(`身高=${heightDisplay || fmtRange(ht(height), ht(height), 'm')}`)
     if (weight != null) cond.push(`体重=${weight}kg`)
     const condStr = cond.join(' + ') || '当前条件'
     const exact = results?.exactResults || []
@@ -255,14 +448,16 @@ export class EggService {
     if (exact.length) {
       lines.push(`✅ 完美匹配 ${condStr} 的精灵（共 ${exact.length} 只）：`)
       exact.slice(0, 10).forEach((item: any, i: number) => {
-        lines.push(`  ${i + 1}. ${item.pet || '未知'} (#${item.petId || '-'})`)
+        const card = this.formatSizeApiCard(item)
+        lines.push(`  ${i + 1}. ${card.name} (#${card.id}) — ${card.height_label} / ${card.weight_label}`)
       })
     }
     if (candidates.length) {
       if (lines.length) lines.push('')
       lines.push(`🔍 范围匹配 ${condStr} 的精灵（共 ${candidates.length} 只）：`)
       candidates.slice(0, 10).forEach((item: any, i: number) => {
-        lines.push(`  ${i + 1}. ${item.pet || '未知'} (#${item.petId || '-'})`)
+        const card = this.formatSizeApiCard(item)
+        lines.push(`  ${i + 1}. ${card.name} (#${card.id}) — ${card.height_label} / ${card.weight_label}`)
       })
     }
     return lines.join('\n')
@@ -399,19 +594,13 @@ export class EggService {
     const fathers = this.getBreedingParents(pet)
     const bp = pet.breeding_profile || {}
     const eggGroups = this.getEggGroups(pet)
-    const makePetCard = (p: any) => ({
-      id: p.id, name: petName(p),
-      icon: petIconUrl(p.id), image: petImageUrl(p.id),
-      type_label: petType(p),
-      egg_groups_label: formatEggGroups(this.getEggGroups(p)),
-    })
     return {
-      target: makePetCard(pet),
+      target: this.formatPetCard(pet),
       egg_groups_label: formatEggGroups(eggGroups),
       female_rate: bp.female_rate ?? null,
       male_rate: bp.male_rate ?? null,
       is_undiscovered: eggGroups.includes(1),
-      fathers: fathers.slice(0, 30).map(makePetCard),
+      fathers: fathers.slice(0, 30).map(p => this.formatPetCard(p)),
       father_count: fathers.length,
       commandHint: '洛克配种 <父体> <母体> 查看详细结果',
       copyright: 'Koishi & WeGame 洛克王国插件',
@@ -422,34 +611,20 @@ export class EggService {
     return {
       keyword,
       count: candidates.length,
-      candidates: candidates.map(p => ({
-        id: p.id, name: petName(p),
-        icon: petIconUrl(p.id), image: petImageUrl(p.id),
-        type_label: petType(p),
-        egg_groups_label: formatEggGroups(this.getEggGroups(p)),
-      })),
+      candidates: candidates.map(p => this.formatPetCard(p)),
       commandHint: '请使用更精确的名称重新查询',
       copyright: 'Koishi & WeGame 洛克王国插件',
     }
   }
 
-  buildSizeSearchData(height?: number, weight?: number, results?: { perfect: any[]; range: any[] }) {
+  buildSizeSearchData(height?: number, weight?: number, results?: { perfect: any[]; range: any[] }, heightDisplay?: string) {
     const conditions: string[] = []
-    if (height != null) conditions.push(`身高 ${height} cm`)
+    if (height != null) conditions.push(`身高 ${heightDisplay || fmtRange(ht(height), ht(height), 'm')}`)
     if (weight != null) conditions.push(`体重 ${weight} kg`)
-    const makePetCard = (p: any) => {
-      const br = p.breeding || {}
-      return {
-        id: p.id, name: petName(p),
-        icon: petIconUrl(p.id), image: petImageUrl(p.id),
-        type_label: petType(p),
-        egg_groups_label: formatEggGroups(this.getEggGroups(p)),
-        height_label: fmtRange(br.height_low, br.height_high, 'cm'),
-        weight_label: fmtRange(wt(br.weight_low), wt(br.weight_high), 'kg'),
-      }
-    }
-    const perfect = (results?.perfect || []).map(makePetCard)
-    const ranged = (results?.range || []).map(makePetCard)
+    const [perfect, ranged] = this.mergeCardsByName(
+      (results?.perfect || []).map(p => this.formatPetCard(p, height, weight)),
+      (results?.range || []).map(p => this.formatPetCard(p, height, weight)),
+    )
     return {
       query_label: conditions.join(' / ') || '尺寸反查',
       perfect_matches: perfect,
@@ -457,6 +632,27 @@ export class EggService {
       total_count: perfect.length + ranged.length,
       has_results: !!(perfect.length || ranged.length),
       commandHint: '洛克查蛋 <精灵名> | 洛克查蛋 身高25 体重1.5',
+      copyright: 'Koishi & WeGame 洛克王国插件',
+    }
+  }
+
+  buildSizeSearchDataFromApi(height?: number, weight?: number, results?: any, heightDisplay?: string) {
+    const conditions: string[] = []
+    if (height != null) conditions.push(`身高 ${heightDisplay || fmtRange(ht(height), ht(height), 'm')}`)
+    if (weight != null) conditions.push(`体重 ${weight} kg`)
+    const [perfect, ranged] = this.mergeCardsByName(
+      (results?.exactResults || []).map((item: any) => this.formatSizeApiCard(item)),
+      (results?.candidates || []).map((item: any) => this.formatSizeApiCard(item)),
+    )
+    const searchMode = results?.searchMode || ''
+    const queryLabel = `${conditions.join(' / ') || '尺寸反查'}${searchMode ? ` · 模式 ${searchMode}` : ''}`
+    return {
+      query_label: queryLabel,
+      perfect_matches: perfect,
+      range_matches: ranged,
+      total_count: perfect.length + ranged.length,
+      has_results: !!(perfect.length || ranged.length),
+      commandHint: '洛克查蛋 <精灵名> | 洛克查蛋 0.18m 1.5kg | 洛克查蛋 0.18',
       copyright: 'Koishi & WeGame 洛克王国插件',
     }
   }
@@ -493,4 +689,3 @@ export class EggService {
     }
   }
 }
-

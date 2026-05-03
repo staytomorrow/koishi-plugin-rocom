@@ -13,6 +13,9 @@
     .result-card-name { font-size: 26px; font-weight: 700; color: #4d3624; }
     .result-card-meta { margin-top: 8px; color: #75563d; font-size: 18px; line-height: 1.7; }
     .result-empty { text-align: center; color: #6f5845; padding: 44px 20px; font-size: 24px; }
+    .pagination-footer { margin-top: 22px; display: flex; justify-content: space-between; gap: 14px; color: #8c7a61; font-size: 14px; }
+    .pagination-hint { max-width: 70%; }
+    .copyright { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -24,51 +27,51 @@
       </div>
     </div>
 
-    {% if not has_results %}
-    <div class="result-empty">没有找到匹配当前尺寸的精灵，注意身高要用cm，不是游戏内的m</div>
-    {% endif %}
+    {{if !has_results}}
+    <div class="result-empty">没有找到匹配当前尺寸的精灵，注意身高要使用 m，例如 0.18m。</div>
+    {{/if}}
 
-    {% if perfect_matches %}
+    {{if perfect_matches && perfect_matches.length}}
     <section class="result-group">
       <div class="result-group-title">完美匹配</div>
       <div class="result-grid">
-        {% for item in perfect_matches %}
+        {{each perfect_matches item}}
         <div class="result-card">
-          {% if item.icon %}
-          <div class="result-card-icon"><img src="{{item.icon}}" alt="{{item.name}}"></div>
-          {% endif %}
+          {{if item.icon}}
+          <div class="result-card-icon"><img src="{{item.icon}}" alt="{{item.name}}" onerror="this.style.display='none'"></div>
+          {{/if}}
           <div class="result-card-name">{{item.name}} #{{item.id}}</div>
           <div class="result-card-meta">
             属性：{{item.type_label}}<br>
-            蛋组：{{item.egg_groups_label}}<br>
+            蛋组：{{item.egg_groups_label}}{{if item.match_info_label}} ｜ 匹配：{{item.match_info_label}}{{/if}}<br>
             身高：{{item.height_label}} ｜ 体重：{{item.weight_label}}
           </div>
         </div>
-        {% endfor %}
+        {{/each}}
       </div>
     </section>
-    {% endif %}
+    {{/if}}
 
-    {% if range_matches %}
+    {{if range_matches && range_matches.length}}
     <section class="result-group">
       <div class="result-group-title">范围匹配</div>
       <div class="result-grid">
-        {% for item in range_matches %}
+        {{each range_matches item}}
         <div class="result-card">
-          {% if item.icon %}
-          <div class="result-card-icon"><img src="{{item.icon}}" alt="{{item.name}}"></div>
-          {% endif %}
+          {{if item.icon}}
+          <div class="result-card-icon"><img src="{{item.icon}}" alt="{{item.name}}" onerror="this.style.display='none'"></div>
+          {{/if}}
           <div class="result-card-name">{{item.name}} #{{item.id}}</div>
           <div class="result-card-meta">
             属性：{{item.type_label}}<br>
-            蛋组：{{item.egg_groups_label}}<br>
+            蛋组：{{item.egg_groups_label}}{{if item.match_info_label}} ｜ 匹配：{{item.match_info_label}}{{/if}}<br>
             身高：{{item.height_label}} ｜ 体重：{{item.weight_label}}
           </div>
         </div>
-        {% endfor %}
+        {{/each}}
       </div>
     </section>
-    {% endif %}
+    {{/if}}
 
     <div class="pagination-footer">
       <span class="pagination-hint">{{commandHint}}</span>

@@ -6,6 +6,7 @@ import {
   upsertRoleToken,
 } from '../role-token'
 import { Binding } from '../user'
+import { sendImageWithFallback } from '../send-image'
 
 export async function getPrimaryToken(deps: PluginDeps, userId: string): Promise<string> {
   const token = await getRoleToken(deps.ctx, userId)
@@ -13,7 +14,23 @@ export async function getPrimaryToken(deps: PluginDeps, userId: string): Promise
 }
 
 export function notLoggedInHint(): string {
-  return '您尚未绑定洛克王国账号，请先使用“洛克QQ登录”或“洛克微信登录”进行绑定。'
+  return '您尚未绑定洛克王国账号，请先使用“洛克.QQ登录”或“洛克.微信登录”进行绑定。'
+}
+
+function formatBindTime(bindTime: number): string {
+  if (!bindTime || bindTime <= 0) return '未知'
+  const date = new Date(bindTime)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function formatLoginType(loginType: string): string {
+  const typeMap: Record<string, string> = {
+    qq: 'QQ',
+    wechat: '微信',
+    manual: '手动导入',
+  }
+  return typeMap[loginType] || loginType || '未知'
 }
 
 export async function saveBindingWithRoleInfo(
@@ -65,7 +82,7 @@ export async function saveBindingWithRoleInfo(
 export function register(deps: PluginDeps) {
   const { ctx, client, userMgr } = deps
 
-  ctx.command('洛克QQ登录', 'QQ 扫码登录')
+  ctx.command('洛克').subcommand('.QQ登录', 'QQ 扫码登录')
     .action(async ({ session }) => {
       const userId = session!.userId!
       const qrData = await client.qqQrLogin(ctx, userId)
@@ -94,7 +111,7 @@ export function register(deps: PluginDeps) {
       return '登录超时或失败，请重试。'
     })
 
-  ctx.command('洛克微信登录', '微信扫码登录')
+  ctx.command('洛克').subcommand('.微信登录', '微信扫码登录')
     .action(async ({ session }) => {
       const userId = session!.userId!
       const qrData = await client.wechatQrLogin(ctx, userId)
@@ -118,40 +135,57 @@ export function register(deps: PluginDeps) {
       return '登录超时或失败，请重试。'
     })
 
-  ctx.command('洛克导入 <tgpId:string> <tgpTicket:string>', '导入 WeGame 凭证')
+  ctx.command('洛克').subcommand('.导入 <tgpId:string> <tgpTicket:string>', '导入 WeGame 凭证')
     .action(async ({ session }, tgpId, tgpTicket) => {
-      if (!tgpId || !tgpTicket) return '用法：洛克导入 <tgp_id> <tgp_ticket>'
+      if (!tgpId || !tgpTicket) return '用法：洛克.导入 <tgp_id> <tgp_ticket>'
       const userId = session!.userId!
       const res = await client.importToken(ctx, tgpId, tgpTicket, userId)
       if (!res?.frameworkToken) return '凭证导入失败。'
       await saveBindingWithRoleInfo(deps, session, res.frameworkToken, 'manual', userId)
     })
 
-  ctx.command('洛克绑定列表', '查看已绑定账号')
+  ctx.command('洛克').subcommand('.绑定列表', '查看已绑定账号')
     .action(async ({ session }) => {
       const bindings = userMgr.getUserBindings(session!.userId!)
       if (!bindings.length) return '暂无绑定账号。'
 
-      const lines = ['【绑定账号列表】']
-      bindings.forEach((binding, index) => {
-        const mark = binding.is_primary ? '（主账号）' : ''
-        const time = binding.bind_time > 0 ? new Date(binding.bind_time).toLocaleString('zh-CN') : '未知'
-        lines.push(`[${index + 1}] ${binding.nickname} (ID: ${binding.role_id}) ${binding.login_type}${mark} · ${time}`)
+      const bindItems = bindings.map((binding, index) => ({
+        index: index + 1,
+        nickname: binding.nickname || '未知',
+        isPrimary: Boolean(binding.is_primary),
+        role_id: binding.role_id || '未知',
+        type_label: formatLoginType(binding.login_type),
+        created_at: formatBindTime(binding.bind_time),
+      }))
+
+      const data = {
+        title: '绑定账号列表',
+        subtitle: `共找到 ${bindings.length} 个有效绑定账号`,
+        bindings: bindItems,
+        commandHint: '洛克.切换 <序号> 切换主账号 | 洛克.解绑 <序号> 移除绑定',
+        copyright: 'Koishi & WeGame 洛克王国插件',
+      }
+
+      const fallbackLines = ['【绑定账号列表】']
+      bindItems.forEach((binding) => {
+        const mark = binding.isPrimary ? '（主账号）' : ''
+        fallbackLines.push(`[${binding.index}] ${binding.nickname} (ID: ${binding.role_id}) ${binding.type_label}${mark} · ${binding.created_at}`)
       })
-      return lines.join('\n')
+      const png = await deps.renderer.renderHtml(ctx, 'bind-list', data)
+      await sendImageWithFallback(session, png, fallbackLines.join('\n'), 'account:bind-list')
     })
 
-  ctx.command('洛克切换 <index:number>', '切换主账号')
+  ctx.command('洛克').subcommand('.切换 <index:number>', '切换主账号')
     .action(async ({ session }, index) => {
-      if (!index) return '用法：洛克切换 <序号>'
+      if (!index) return '用法：洛克.切换 <序号>'
       return userMgr.switchPrimary(session!.userId!, index)
         ? `成功切换到序号 ${index} 账号。`
         : '序号无效。'
     })
 
-  ctx.command('洛克解绑 <index:number>', '解绑账号')
+  ctx.command('洛克').subcommand('.解绑 <index:number>', '解绑账号')
     .action(async ({ session }, index) => {
-      if (!index) return '用法：洛克解绑 <序号>'
+      if (!index) return '用法：洛克.解绑 <序号>'
       const removed = userMgr.deleteUserBinding(session!.userId!, index)
       if (!removed) return '序号无效。'
 
@@ -168,7 +202,7 @@ export function register(deps: PluginDeps) {
       return `已解绑账号：${removed.nickname}`
     })
 
-  ctx.command('洛克刷新', '刷新当前主账号凭证')
+  ctx.command('洛克').subcommand('.刷新', '刷新当前主账号凭证')
     .action(async ({ session }) => {
       const userId = session!.userId!
       const binding = userMgr.getPrimaryBinding(userId)

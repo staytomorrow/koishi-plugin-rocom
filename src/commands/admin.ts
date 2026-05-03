@@ -11,7 +11,7 @@ export function register(deps: PluginDeps) {
     return config.adminUserIds.includes(userId)
   }
 
-  ctx.command('洛克刷新所有凭证', '刷新所有用户凭证（管理员）')
+  ctx.command('洛克').subcommand('.刷新所有凭证', '刷新所有用户凭证（管理员）')
     .action(async ({ session }) => {
       if (!isAdmin(session!.userId!)) return '此指令仅限管理员使用。'
       await session!.send('正在刷新所有用户的凭证...')
@@ -46,7 +46,7 @@ export function register(deps: PluginDeps) {
       return `刷新完成：成功 ${success}，失败 ${fail}`
     })
 
-  ctx.command('洛克删除失效绑定', '清理失效绑定（管理员）')
+  ctx.command('洛克').subcommand('.删除失效绑定', '清理失效绑定（管理员）')
     .action(async ({ session }) => {
       if (!isAdmin(session!.userId!)) return '此指令仅限管理员使用。'
       await session!.send('正在检查所有用户的绑定有效性...')

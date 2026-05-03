@@ -234,7 +234,7 @@ function isTargetLineup(lineup: any, lineupId: string): boolean {
 export function register(deps: PluginDeps) {
   const { ctx, client } = deps
 
-  ctx.command('洛克档案', '查看个人档案')
+  ctx.command('洛克').subcommand('.档案', '查看个人档案')
     .action(async ({ session }) => {
       const fwToken = await getPrimaryToken(deps, session!.userId!)
       if (!fwToken) return notLoggedInHint()
@@ -285,19 +285,19 @@ export function register(deps: PluginDeps) {
 
       let degraded = false
       if (!sm) {
-        logger.warn('[Rocom] 洛克档案：pet-summary 接口不可用，已降级为基础档案渲染')
+        logger.warn('[Rocom] 洛克.档案：pet-summary 接口不可用，已降级为基础档案渲染')
         degraded = true
       }
       if (!ev) {
-        logger.warn('[Rocom] 洛克档案：evaluation 接口不可用，已降级为基础档案渲染')
+        logger.warn('[Rocom] 洛克.档案：evaluation 接口不可用，已降级为基础档案渲染')
         degraded = true
       }
       if (!cl) {
-        logger.warn('[Rocom] 洛克档案：collection 接口不可用，已降级为基础档案渲染')
+        logger.warn('[Rocom] 洛克.档案：collection 接口不可用，已降级为基础档案渲染')
         degraded = true
       }
       if (!bo) {
-        logger.warn('[Rocom] 洛克档案：battle-overview 接口不可用，已降级为基础档案渲染')
+        logger.warn('[Rocom] 洛克.档案：battle-overview 接口不可用，已降级为基础档案渲染')
         degraded = true
       }
       if (degraded) {
@@ -395,7 +395,7 @@ export function register(deps: PluginDeps) {
         profileCardImage,
         profileStatusText,
         profileStatusClass: profileStatusText === '是' ? 'online' : 'offline',
-        commandHint: '洛克背包 <筛选> <页码> | 洛克战绩 <页码> | 洛克 查看菜单',
+        commandHint: '洛克.背包 <筛选> <页码> | 洛克.战绩 <页码> | 洛克 查看菜单',
         copyright: 'AstrBot & WeGame Locke Kingdom Plugin',
       }
 
@@ -416,7 +416,7 @@ export function register(deps: PluginDeps) {
       await sendImage(deps, session, 'personal-card', data, fallback)
     })
 
-  ctx.command('洛克战绩 [page:number]', '查看对战战绩')
+  ctx.command('洛克').subcommand('.战绩 [page:number]', '查看对战战绩')
     .action(async ({ session }, _page = 1) => {
       const fwToken = await getPrimaryToken(deps, session!.userId!)
       if (!fwToken) return notLoggedInHint()
@@ -460,14 +460,14 @@ export function register(deps: PluginDeps) {
         winRate: `${bo.win_rate || 0}%`,
         totalMatch: bo.total_match || 0,
         battles,
-        commandHint: '洛克战绩 <页码>',
+        commandHint: '洛克.战绩 <页码>',
         copyright: 'Koishi & WeGame 洛克王国插件',
       }
 
       await sendImage(deps, session, 'record', data, `【${role.name}的战绩】胜率:${bo.win_rate || 0}% 场次:${bo.total_match || 0}`)
     })
 
-  ctx.command('洛克背包 [arg1:string] [arg2:string]', '查看精灵背包')
+  ctx.command('洛克').subcommand('.背包 [arg1:string] [arg2:string]', '查看精灵背包')
     .action(async ({ session }, arg1, arg2) => {
       const fwToken = await getPrimaryToken(deps, session!.userId!)
       if (!fwToken) return notLoggedInHint()
@@ -519,14 +519,14 @@ export function register(deps: PluginDeps) {
         currentPage: pageNo,
         totalPages: Math.max(1, Math.ceil((petRes.total || 0) / 10)),
         pageSize: 10,
-        commandHint: '洛克背包 <全部/异色/了不起/炫彩> <页码>',
+        commandHint: '洛克.背包 <全部/异色/了不起/炫彩> <页码>',
         fallbackPetImage: '',
       }
 
       await sendImage(deps, session, 'package', data, `【背包 - ${category}精灵】共${petRes.total || 0}只`)
     })
 
-  ctx.command('洛克阵容 [arg1:string] [arg2:string]', '查看阵容推荐')
+  ctx.command('洛克').subcommand('.阵容 [arg1:string] [arg2:string]', '查看阵容推荐')
     .action(async ({ session }, arg1, arg2) => {
       const fwToken = await getPrimaryToken(deps, session!.userId!)
       if (!fwToken) return notLoggedInHint()
@@ -560,14 +560,13 @@ export function register(deps: PluginDeps) {
         page_no: res.page_no || pageNo,
         total_pages: res.total_pages || 1,
         fallbackPetImage: '',
-        commandHint: '洛克阵容 <分类> <页码>',
+        commandHint: '洛克.阵容 <分类> <页码>',
       }
 
       await sendImage(deps, session, 'lineup', data, `【阵容推荐】${category || '热门'} 第${pageNo}页`)
     })
 
   ctx.command('查看阵容 <lineupId:string>', '查看阵容详情')
-    .alias('阵容详情')
     .action(async ({ session }, lineupId) => {
       const normalizedLineupId = normalizeLineupLookupId(lineupId)
       if (!normalizedLineupId) return '请提供有效的阵容码。用法：查看阵容 <阵容码>'
@@ -620,8 +619,7 @@ export function register(deps: PluginDeps) {
       await sendImage(deps, session, 'lineup-detail', data, fallback)
     })
 
-  ctx.command('洛克交换大厅 [page:number]', '查看交换大厅')
-    .alias('洛克大厅').alias('交换大厅')
+  ctx.command('洛克').subcommand('.交换大厅 [page:number]', '查看交换大厅')
     .action(async ({ session }, page = 1) => {
       const fwToken = await getPrimaryToken(deps, session!.userId!)
       if (!fwToken) return notLoggedInHint()
@@ -661,7 +659,7 @@ export function register(deps: PluginDeps) {
         }),
         currentPage: page,
         totalPages: res.total_pages || 1,
-        commandHint: '洛克交换大厅 <页码>',
+        commandHint: '洛克.交换大厅 <页码>',
       }
 
       await sendImage(deps, session, 'exchange-hall', data, `【交换大厅】第${page}页`)

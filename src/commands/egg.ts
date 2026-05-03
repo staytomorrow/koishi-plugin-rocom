@@ -63,16 +63,15 @@ async function sendEggImage(
 export function register(deps: PluginDeps) {
   const { ctx, client, eggService } = deps
 
-  ctx.command('洛克查蛋 [arg1:string] [arg2:string]', '查询精灵蛋组')
-    .alias('查蛋')
+  ctx.command('洛克').subcommand('.查蛋 [arg1:string] [arg2:string]', '查询精灵蛋组')
     .action(async ({ session }, arg1, arg2) => {
       if (!arg1) {
         return [
           '查蛋用法：',
-          '  洛克查蛋 <精灵名>',
-          '  洛克查蛋 0.18 1.5',
-          '  洛克查蛋 0.18m 1.5kg',
-          '  洛克查蛋 身高0.18m 体重1.5kg',
+          '  洛克.查蛋 <精灵名>',
+          '  洛克.查蛋 0.18 1.5',
+          '  洛克.查蛋 0.18m 1.5kg',
+          '  洛克.查蛋 身高0.18m 体重1.5kg',
         ].join('\n')
       }
 
@@ -150,7 +149,7 @@ export function register(deps: PluginDeps) {
       }
 
       const name = nameParts.join(' ')
-      if (!name) return '请输入精灵名称。用法：洛克查蛋 <精灵名>'
+      if (!name) return '请输入精灵名称。用法：洛克.查蛋 <精灵名>'
 
       const sr = eggService.search(name)
       if (sr.matchType === 'multi') {
@@ -163,20 +162,24 @@ export function register(deps: PluginDeps) {
 
       const pet = sr.pet
       const data = eggService.buildSearchData(pet)
-      data.commandHint = '洛克查蛋 <名称> | 洛克查蛋 身高0.18m 体重1.5kg | 洛克配种 <父体> <母体>'
+      data.commandHint = '洛克.查蛋 <名称> | 洛克.查蛋 身高0.18m 体重1.5kg | 洛克.配种 <父体> <母体>'
       data.copyright = 'Koishi & WeGame 洛克王国插件'
       const hint = sr.matchType === 'fuzzy' ? `模糊匹配到「${petName(pet)}」\n` : ''
       await sendEggImage(deps, session, 'searcheggs', data, hint + eggService.buildSearchText(pet))
     })
 
-  ctx.command('洛克配种 <nameA:string> [nameB:string]', '配种查询')
-    .alias('配种')
+  ctx.command('洛克').subcommand('.配种 <nameA:string> [nameB:string]', '配种查询')
     .action(async ({ session }, nameA, nameB) => {
       if (!nameA) {
         return [
           '配种用法：',
-          '  洛克配种 <父体> <母体>',
-          '  洛克配种 <精灵名>',
+          '  洛克.配种 <精灵名>',
+          '    查询想孵出这个精灵时可选哪些父体。',
+          '  洛克.配种 <父体> <母体>',
+          '    判断两只精灵是否可以配种，默认前父后母，孵蛋结果跟随母体。',
+          '示例：',
+          '  洛克.配种 喵喵',
+          '  洛克.配种 父体名称 母体名称',
         ].join('\n')
       }
 
@@ -214,7 +217,7 @@ export function register(deps: PluginDeps) {
       if (srB.matchType === 'not_found') return `未找到名为「${nameB}」的精灵。`
 
       const data = eggService.buildPairData(srB.pet, srA.pet)
-      data.commandHint = '默认前父后母，孵蛋结果跟随母体 | 洛克配种 <精灵名> 查询怎么孵'
+      data.commandHint = '默认前父后母，孵蛋结果跟随母体 | 洛克.配种 <精灵名> 查询怎么孵'
       data.copyright = 'Koishi & WeGame 洛克王国插件'
       await sendEggImage(deps, session, 'searcheggs/pair', data, eggService.buildPairText(srB.pet, srA.pet))
     })

@@ -13,7 +13,7 @@
         <h1 class="page-title">{{title}}</h1>
         <p class="page-subtitle">{{subtitle}}</p>
       </div>
-      
+
       <main class="bind-list">
         {{if bindings && bindings.length > 0}}
           {{each bindings item}}
@@ -39,6 +39,7 @@
             暂无绑定的账号信息
           </div>
         {{/if}}
+      </main>
 
       <div class="pagination-footer">
         <span class="pagination-hint">{{commandHint}}</span>

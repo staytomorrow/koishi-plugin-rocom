@@ -73,7 +73,7 @@
           {% for item in pet_evolution %}
           <div class="evo-item">
             <div class="evo-card {% if item.is_current %}current{% endif %}">
-              <div class="evo-image"><img src="{{item.icon or item.image}}" alt="{{item.name}}" onerror="this.onerror=null;this.src='{{_res_path}}img/roco_icon.png'"></div>
+              <div class="evo-image"><img src="{{item.icon || item.image}}" alt="{{item.name}}" onerror="this.onerror=null;this.src='{{_res_path}}img/roco_icon.png'"></div>
               <div class="evo-no">No. {{item.number}}</div>
               <div class="evo-name">{{item.name}}</div>
               {% if item.condition %}

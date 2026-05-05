@@ -325,11 +325,11 @@ body {
                 <div class="title-section">
                     <div class="title-main">
                         <div class="title-badge">
-                            {% if titleIcon %}
+                            {{if titleIcon}}
                             <img src="{{_res_path}}img/yuanxingshangren.png" alt="{{title}}">
-                            {% else %}
+                            {{else}}
                             远
-                            {% endif %}
+                            {{/if}}
                         </div>
                         <span class="title-text">{{title}}</span>
                     </div>
@@ -338,15 +338,15 @@ body {
                 <div class="header-side">
                     <div class="summary-chip">当前商品数 <strong>{{product_count}}</strong></div>
                     <div class="round-info">
-                        <div class="round-pill">第 {{round_info.current or '未开放'}} / {{round_info.total}} 轮</div>
+                        <div class="round-pill">第 {{round_info.current || '未开放'}} / {{round_info.total}} 轮</div>
                         <div class="countdown-pill">剩余 {{round_info.countdown}}</div>
                     </div>
                 </div>
             </div>
 
             <div class="products-grid">
-                {% if products and products|length > 0 %}
-                {% for product in products %}
+                {{if products && products.length > 0}}
+                {{each products product}}
                 <div class="product-card">
                     <div class="product-image-container">
                         <img class="product-image" src="{{product.image}}" alt="{{product.name}}">
@@ -360,10 +360,10 @@ body {
                         <div class="product-slot">本轮商品</div>
                     </div>
                 </div>
-                {% endfor %}
-                {% else %}
+                {{/each}}
+                {{else}}
                 <div class="product-empty">本轮暂无商品，稍后再来看看。</div>
-                {% endif %}
+                {{/if}}
             </div>
         </div>
     </div>

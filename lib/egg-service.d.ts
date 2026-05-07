@@ -22,6 +22,15 @@ export declare class EggService {
         perfect: any[];
         range: any[];
     };
+    private formatMatchSummary;
+    private calcLocalMatchInfo;
+    private rangeMatchScore;
+    private formatPetCard;
+    private formatSizeApiCard;
+    private mergeCardsByName;
+    private mergeSizeCard;
+    private minValue;
+    private maxValue;
     getCompatiblePets(pet: any): any[];
     getBreedingParents(pet: any): any[];
     evaluatePair(a: any, b: any): {
@@ -36,8 +45,8 @@ export declare class EggService {
     buildSizeSearchText(height?: number, weight?: number, results?: {
         perfect: any[];
         range: any[];
-    }): string;
-    buildSizeSearchTextFromApi(height?: number, weight?: number, results?: any): string;
+    }, heightDisplay?: string): string;
+    buildSizeSearchTextFromApi(height?: number, weight?: number, results?: any, heightDisplay?: string): string;
     buildSearchText(pet: any): string;
     buildCandidatesText(keyword: string, candidates: any[]): string;
     buildWantPetText(pet: any): string;
@@ -133,7 +142,17 @@ export declare class EggService {
             icon: string;
             image: string;
             type_label: string;
+            egg_group_ids: number[];
             egg_groups_label: string;
+            height_min: number;
+            height_max: number;
+            height_label: string;
+            weight_min: number;
+            weight_max: number;
+            weight_label: string;
+            probability: number;
+            match_count: number;
+            match_info_label: string;
         };
         egg_groups_label: string;
         female_rate: any;
@@ -145,7 +164,17 @@ export declare class EggService {
             icon: string;
             image: string;
             type_label: string;
+            egg_group_ids: number[];
             egg_groups_label: string;
+            height_min: number;
+            height_max: number;
+            height_label: string;
+            weight_min: number;
+            weight_max: number;
+            weight_label: string;
+            probability: number;
+            match_count: number;
+            match_info_label: string;
         }[];
         father_count: number;
         commandHint: string;
@@ -160,7 +189,17 @@ export declare class EggService {
             icon: string;
             image: string;
             type_label: string;
+            egg_group_ids: number[];
             egg_groups_label: string;
+            height_min: number;
+            height_max: number;
+            height_label: string;
+            weight_min: number;
+            weight_max: number;
+            weight_label: string;
+            probability: number;
+            match_count: number;
+            match_info_label: string;
         }[];
         commandHint: string;
         copyright: string;
@@ -168,28 +207,19 @@ export declare class EggService {
     buildSizeSearchData(height?: number, weight?: number, results?: {
         perfect: any[];
         range: any[];
-    }): {
+    }, heightDisplay?: string): {
         query_label: string;
-        perfect_matches: {
-            id: any;
-            name: string;
-            icon: string;
-            image: string;
-            type_label: string;
-            egg_groups_label: string;
-            height_label: string;
-            weight_label: string;
-        }[];
-        range_matches: {
-            id: any;
-            name: string;
-            icon: string;
-            image: string;
-            type_label: string;
-            egg_groups_label: string;
-            height_label: string;
-            weight_label: string;
-        }[];
+        perfect_matches: any[];
+        range_matches: any[];
+        total_count: number;
+        has_results: boolean;
+        commandHint: string;
+        copyright: string;
+    };
+    buildSizeSearchDataFromApi(height?: number, weight?: number, results?: any, heightDisplay?: string): {
+        query_label: string;
+        perfect_matches: any[];
+        range_matches: any[];
         total_count: number;
         has_results: boolean;
         commandHint: string;

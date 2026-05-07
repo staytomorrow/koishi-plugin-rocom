@@ -1,6 +1,6 @@
 import { Context } from 'koishi';
 import { RocomClient } from './client';
-import { UserManager, MerchantSubscriptionManager } from './user';
+import { UserManager, MerchantSubscriptionManager, HomeSubscriptionManager } from './user';
 import { EggService } from './egg-service';
 import { Renderer } from './render';
 export interface PluginConfig {
@@ -12,7 +12,13 @@ export interface PluginConfig {
     autoRefreshTime: string[];
     merchantSubscriptionEnabled: boolean;
     merchantSubscriptionItems: string[];
+    merchantPrivateSubscriptionEnabled: boolean;
     merchantCheckInterval: number;
+    homeSubscriptionEnabled: boolean;
+    homeSubscriptionIntervalMinutes: number;
+    imageCompressionEnabled: boolean;
+    imageCompressionMinBytes: number;
+    imageCompressionLevel: number;
 }
 export interface PluginDeps {
     ctx: Context;
@@ -20,6 +26,7 @@ export interface PluginDeps {
     client: RocomClient;
     userMgr: UserManager;
     merchantSubMgr: MerchantSubscriptionManager;
+    homeSubMgr: HomeSubscriptionManager;
     eggService: EggService;
     renderer: Renderer;
 }

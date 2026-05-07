@@ -1,0 +1,255 @@
+@font-face {
+    font-family: "rocom-student";
+    src: url("../../ttf/HYWenHei-85W-1.ttf") format("truetype");
+    font-display: swap;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 26px;
+    background: #efe6d8;
+    display: inline-block;
+    font-family: "rocom-student", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+.student-page {
+    width: 1260px;
+    padding: 34px 36px 30px;
+    box-sizing: border-box;
+    border-radius: 28px;
+    color: #322618;
+    background:
+        linear-gradient(rgba(40, 29, 18, 0.10), rgba(40, 29, 18, 0.10)),
+        url("../../img/ercode-bg.D1ccSQKH.png") center/cover no-repeat;
+}
+
+.page-header {
+    padding-bottom: 18px;
+    border-bottom: 2px dashed rgba(141, 106, 68, 0.28);
+}
+
+.page-title {
+    font-size: 44px;
+    line-height: 1.1;
+    font-weight: 800;
+}
+
+.page-subtitle {
+    margin-top: 10px;
+    font-size: 22px;
+    line-height: 1.4;
+    color: #6d5944;
+}
+
+.hero-card,
+.summary-card,
+.panel-card,
+.command-hint,
+.empty-card {
+    border: 1px solid rgba(141, 106, 68, 0.16);
+    border-radius: 20px;
+    background: rgba(255, 252, 247, 0.82);
+    box-shadow: 0 10px 26px rgba(83, 58, 35, 0.08);
+}
+
+.hero-card {
+    margin-top: 22px;
+    padding: 24px 26px;
+    background:
+        linear-gradient(135deg, rgba(237, 179, 89, 0.24), rgba(255, 251, 245, 0.88)),
+        rgba(255, 252, 247, 0.86);
+}
+
+.hero-title {
+    font-size: 20px;
+    color: #8b735b;
+}
+
+.hero-value {
+    margin-top: 8px;
+    font-size: 42px;
+    line-height: 1.15;
+    font-weight: 800;
+    color: #2e2418;
+}
+
+.hero-subvalue {
+    margin-top: 8px;
+    font-size: 22px;
+    color: #6d5944;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 22px;
+}
+
+.summary-card {
+    padding: 18px 20px;
+}
+
+.summary-label {
+    font-size: 18px;
+    color: #8b735b;
+}
+
+.summary-value {
+    margin-top: 10px;
+    font-size: 30px;
+    line-height: 1.2;
+    font-weight: 800;
+}
+
+.dual-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 18px;
+    margin-top: 24px;
+}
+
+.panel-card {
+    padding: 20px;
+}
+
+.extra-panel {
+    margin-top: 18px;
+}
+
+.section-title {
+    margin-bottom: 14px;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.detail-card {
+    overflow: hidden;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.42);
+    border: 1px solid rgba(141, 106, 68, 0.10);
+}
+
+.detail-row {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+    padding: 15px 18px;
+    border-bottom: 1px solid rgba(141, 106, 68, 0.10);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 20px;
+    font-weight: 700;
+    color: #6d5944;
+}
+
+.detail-value {
+    font-size: 20px;
+    color: #322618;
+    word-break: break-word;
+}
+
+.perks-list {
+    display: grid;
+    gap: 14px;
+}
+
+.perk-card {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.42);
+    border: 1px solid rgba(141, 106, 68, 0.10);
+}
+
+.perk-top {
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    gap: 14px;
+    align-items: center;
+}
+
+.perk-icon-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: rgba(230, 219, 203, 0.58);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.perk-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.perk-icon-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 800;
+    color: #8b735b;
+}
+
+.perk-name {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.perk-meta {
+    margin-top: 6px;
+    font-size: 17px;
+    color: #7a6550;
+}
+
+.perk-state {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(211, 144, 53, 0.14);
+    color: #9f6621;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.perk-desc {
+    margin-top: 12px;
+    font-size: 18px;
+    line-height: 1.5;
+    color: #4f3c29;
+}
+
+.panel-footer {
+    margin-top: 14px;
+    font-size: 18px;
+    color: #7a6550;
+}
+
+.empty-card {
+    padding: 24px;
+    font-size: 20px;
+    color: #6d5944;
+}
+
+.command-hint {
+    margin-top: 20px;
+    padding: 14px 18px;
+    font-size: 20px;
+    color: #6d5944;
+}
+
+.footer {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 16px;
+    color: rgba(113, 93, 73, 0.88);
+}

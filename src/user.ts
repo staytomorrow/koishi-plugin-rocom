@@ -17,11 +17,30 @@ export interface MerchantSubscription {
   group_id: string
   channel_id?: string
   platform?: string
+  user_id?: string
+  type?: string
   mention_all: boolean
   items: string[]
   last_push_round: string | null
   last_matched_items: string[]
   updated_by: string
+}
+
+export interface HomeSubscription {
+  key: string
+  kind: 'garden' | 'inspiration'
+  uid: string
+  channel_id?: string
+  platform?: string
+  guild_id?: string
+  user_id?: string
+  updated_by: string
+  notify_state: {
+    first?: boolean
+    all?: boolean
+  }
+  updated_at: number
+  last_push_time?: number
 }
 
 class JsonStore<T> {
@@ -165,6 +184,41 @@ export class MerchantSubscriptionManager {
   }
 
   getAll(): Record<string, MerchantSubscription> {
+    return JSON.parse(JSON.stringify(this.store.get()))
+  }
+}
+
+export class HomeSubscriptionManager {
+  private store: JsonStore<Record<string, HomeSubscription>>
+
+  constructor(dataDir: string) {
+    this.store = new JsonStore(dataDir, 'rocom_home_subscriptions.json', {})
+  }
+
+  upsert(key: string, sub: HomeSubscription) {
+    const data = this.store.get()
+    data[key] = { ...sub }
+    this.store.set(data)
+  }
+
+  deleteMatching(target: { platform?: string, channelId?: string, userId?: string }, kind = '', uid = '') {
+    const data = this.store.get()
+    let deleted = 0
+    for (const [key, sub] of Object.entries(data)) {
+      const sameTarget = sub.platform === target.platform
+        && (sub.channel_id || '') === (target.channelId || '')
+        && (sub.user_id || '') === (target.userId || '')
+      if (!sameTarget) continue
+      if (kind && sub.kind !== kind) continue
+      if (uid && sub.uid !== uid) continue
+      delete data[key]
+      deleted++
+    }
+    if (deleted) this.store.set(data)
+    return deleted
+  }
+
+  getAll(): Record<string, HomeSubscription> {
     return JSON.parse(JSON.stringify(this.store.get()))
   }
 }

@@ -1,1 +1,15 @@
 src/doc/
+
+# Local npm cache from packaging and publish checks
+.npm-cache/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Generated runtime build outputs
+lib/*.js
+lib/**/*.js
+lib/render-templates/
+
+# Local npm pack artifacts
+*.tgz

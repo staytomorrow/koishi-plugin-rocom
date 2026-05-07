@@ -1,33 +1,58 @@
 {
   "name": "koishi-plugin-rocom",
-  "description": "洛克王国插件",
-  "version": "0.0.1",
+  "description": "洛克王国查询与订阅插件",
+  "version": "1.0.0",
   "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
+  "typings": "lib/index.d.ts",                  
+  "homepage": "https://github.com/staytomorrow/koishi-plugin-rocom",        
+  "repository": {                          
+    "type": "git",
+    "url": "git+https://github.com/staytomorrow/koishi-plugin-rocom.git"
+  },
   "files": [
     "lib",
-    "dist"
+    "dist",
+    "readme.md"
   ],
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "build": "tsc -p tsconfig.json --emitDeclarationOnly false --module commonjs --moduleResolution node",
+    "postbuild": "node -e \"const fs=require('fs');fs.rmSync('lib/render-templates',{recursive:true,force:true});fs.cpSync('src/render-templates','lib/render-templates',{recursive:true});\"",
+    "check": "tsc -p tsconfig.json --noEmit --pretty false",
+    "pack:dry": "npm pack --dry-run",
+    "prepack": "npm run build"
+  },
   "keywords": [
     "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "rocom",
+    "洛克王国",
+    "洛克",
+    "订阅",
+    "查询"
   ],
   "dependencies": {
     "art-template": "^4.13.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
   },
   "peerDependencies": {
     "koishi": "^4.18.7",
     "koishi-plugin-puppeteer": "^3.5.3"
   },
   "koishi": {
+    "description": {
+      "zh": "洛克王国查询与订阅插件，支持精灵、蛋尺寸、背包、家园、远行商人等功能。"
+    },
     "service": {
       "required": [
         "puppeteer",
         "database"
       ]
-    }
+    },
+    "preview":true
   }
 }

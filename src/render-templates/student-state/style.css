@@ -1,0 +1,157 @@
+@font-face {
+    font-family: "rocom-state";
+    src: url("../../ttf/HYWenHei-85W-1.ttf") format("truetype");
+    font-display: swap;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 26px;
+    background: #efe6d8;
+    display: inline-block;
+    font-family: "rocom-state", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+.state-page {
+    width: 1180px;
+    padding: 34px 36px 30px;
+    box-sizing: border-box;
+    border-radius: 28px;
+    color: #322618;
+    background:
+        linear-gradient(rgba(40, 29, 18, 0.10), rgba(40, 29, 18, 0.10)),
+        url("../../img/ercode-bg.D1ccSQKH.png") center/cover no-repeat;
+}
+
+.page-header {
+    padding-bottom: 18px;
+    border-bottom: 2px dashed rgba(141, 106, 68, 0.28);
+}
+
+.page-title {
+    font-size: 44px;
+    line-height: 1.1;
+    font-weight: 800;
+}
+
+.page-subtitle {
+    margin-top: 10px;
+    font-size: 22px;
+    line-height: 1.4;
+    color: #6d5944;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 22px;
+}
+
+.summary-card,
+.hero-card,
+.detail-card,
+.command-hint {
+    border: 1px solid rgba(141, 106, 68, 0.16);
+    border-radius: 20px;
+    background: rgba(255, 252, 247, 0.82);
+    box-shadow: 0 10px 26px rgba(83, 58, 35, 0.08);
+}
+
+.hero-card {
+    margin-top: 22px;
+    padding: 24px 26px;
+    background:
+        linear-gradient(135deg, rgba(237, 179, 89, 0.24), rgba(255, 251, 245, 0.88)),
+        rgba(255, 252, 247, 0.86);
+}
+
+.hero-title {
+    font-size: 20px;
+    color: #8b735b;
+}
+
+.hero-value {
+    margin-top: 8px;
+    font-size: 42px;
+    line-height: 1.15;
+    font-weight: 800;
+    color: #2e2418;
+}
+
+.hero-subvalue {
+    margin-top: 8px;
+    font-size: 22px;
+    color: #6d5944;
+}
+
+.summary-card {
+    padding: 18px 20px;
+}
+
+.summary-label {
+    font-size: 18px;
+    color: #8b735b;
+}
+
+.summary-value {
+    margin-top: 10px;
+    font-size: 30px;
+    line-height: 1.2;
+    font-weight: 800;
+}
+
+.section-title {
+    margin: 28px 0 16px;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.detail-card {
+    overflow: hidden;
+}
+
+.detail-row {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(141, 106, 68, 0.10);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 21px;
+    font-weight: 700;
+    color: #6d5944;
+}
+
+.detail-value {
+    font-size: 21px;
+    color: #322618;
+    word-break: break-word;
+}
+
+.empty-text {
+    padding: 26px;
+    font-size: 22px;
+    color: #6d5944;
+}
+
+.command-hint {
+    margin-top: 20px;
+    padding: 14px 18px;
+    font-size: 20px;
+    color: #6d5944;
+}
+
+.footer {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 16px;
+    color: rgba(113, 93, 73, 0.88);
+}

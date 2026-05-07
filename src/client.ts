@@ -1,4 +1,4 @@
-import { Context, Logger } from 'koishi'
+﻿import { Context, Logger } from 'koishi'
 
 const logger = new Logger('rocom-client')
 
@@ -6,6 +6,7 @@ export class RocomClient {
   private baseUrl: string
   private apiKey: string
   private timeout: number
+  private lastError = '接口异常'
 
   constructor(baseUrl: string, apiKey: string, timeout = 15000) {
     this.baseUrl = baseUrl.replace(/\/$/, '')
@@ -145,6 +146,7 @@ export class RocomClient {
         timeout: this.timeout,
       })
       if (resp?.code !== 0) {
+        this.setLastError(resp?.message || '接口返回异常')
         logger.warn(path + ' error: ' + (resp?.message || 'unknown'))
         if (!options?.silentFailureDetails) {
           this.logRequestFailureDetails('GET', path, headers, params, undefined, resp)
@@ -154,6 +156,7 @@ export class RocomClient {
       return resp?.data ?? {}
     } catch (e) {
       const message = this.formatHttpError(e)
+      this.setLastError(message)
       if (!options?.silentFailureDetails) {
         this.logRequestFailureDetails('GET', path, headers, params, undefined, e)
       }
@@ -175,6 +178,7 @@ export class RocomClient {
         timeout: this.timeout,
       })
       if (resp?.code !== 0) {
+        this.setLastError(resp?.message || '接口返回异常')
         logger.warn(path + ' error: ' + (resp?.message || 'unknown'))
         this.logRequestFailureDetails('POST', path, headers, params, json, resp)
         return null
@@ -182,6 +186,7 @@ export class RocomClient {
       return resp?.data ?? {}
     } catch (e) {
       const message = this.formatHttpError(e)
+      this.setLastError(message)
       this.logRequestFailureDetails('POST', path, headers, params, json, e)
       const err = e as any
       if (err?.response) {
@@ -197,6 +202,7 @@ export class RocomClient {
     try {
       const resp: any = await ctx.http("DELETE", `${this.baseUrl}${path}`, { headers, timeout: this.timeout })
       if (resp?.code !== 0) {
+        this.setLastError(resp?.message || '接口返回异常')
         logger.warn(path + ' error: ' + (resp?.message || 'unknown'))
         this.logRequestFailureDetails('DELETE', path, headers, undefined, undefined, resp)
         return null
@@ -204,6 +210,7 @@ export class RocomClient {
       return resp?.data ?? {}
     } catch (e) {
       const message = this.formatHttpError(e)
+      this.setLastError(message)
       this.logRequestFailureDetails('DELETE', path, headers, undefined, undefined, e)
       const err = e as any
       if (err?.response) {
@@ -215,7 +222,54 @@ export class RocomClient {
     }
   }
 
-  // 登录与绑定相关接口
+  // Login and binding APIs.
+  private async requestWithStatus(
+    ctx: Context,
+    method: 'GET' | 'POST',
+    path: string,
+    headers: Record<string, string>,
+    options: { params?: Record<string, any>, json?: any, acceptedStatuses?: number[] } = {},
+  ): Promise<{ status: number | null, data: any }> {
+    const acceptedStatuses = options.acceptedStatuses || [200]
+    try {
+      const response: any = await (ctx.http as any)(method, `${this.baseUrl}${path}`, {
+        headers,
+        params: options.params,
+        data: options.json,
+        timeout: this.timeout,
+        validateStatus: () => true,
+      })
+      const status = Number(response?.status ?? response?.statusCode ?? 200)
+      const body = response?.data !== undefined ? response.data : response
+      if (body?.code !== undefined && body.code !== 0) {
+        this.setLastError(body.message || body.msg || '接口返回异常')
+        this.logRequestFailureDetails(method, path, headers, options.params, options.json, body)
+        return { status: null, data: null }
+      }
+      const data = body?.code !== undefined ? (body.data ?? {}) : (body ?? {})
+      if (!acceptedStatuses.includes(status)) {
+        this.setLastError(`HTTP ${status}`)
+        this.logRequestFailureDetails(method, path, headers, options.params, options.json, response)
+      }
+      return { status, data }
+    } catch (e) {
+      const message = this.formatHttpError(e)
+      this.setLastError(message)
+      this.logRequestFailureDetails(method, path, headers, options.params, options.json, e)
+      return { status: null, data: null }
+    }
+  }
+
+  private async getIngameTask(ctx: Context, taskId: string) {
+    return this.requestWithStatus(
+      ctx,
+      'GET',
+      `/api/v1/games/rocom/ingame/tasks/${taskId}`,
+      this.wegameHeaders(),
+      { acceptedStatuses: [200, 202] },
+    )
+  }
+
   async qqQrLogin(ctx: Context, userIdentifier: string) {
     const params: any = { client_type: 'bot', client_id: 'koishi', provider: 'rocom' }
     if (userIdentifier) params.user_identifier = this.sanitizeUid(userIdentifier)
@@ -277,6 +331,14 @@ export class RocomClient {
     )
   }
 
+  getLastError(defaultMessage = '接口异常') {
+    return this.lastError || defaultMessage
+  }
+
+  private setLastError(message: string) {
+    this.lastError = message || '接口异常'
+  }
+
   async getPetSummary(ctx: Context, fwToken: string, userIdentifier = '') {
     return this.get(ctx, '/api/v1/games/rocom/profile/pet-summary', this.rocomHeaders(fwToken, userIdentifier))
   }
@@ -308,35 +370,47 @@ export class RocomClient {
 
   async ingamePlayerSearch(ctx: Context, uid: string) {
     const sanitizedUid = this.sanitizeUid(uid)
-    if (!sanitizedUid) return null
+    if (!sanitizedUid) {
+      this.setLastError('UID 涓嶈兘涓虹┖')
+      return null
+    }
 
     const path = '/api/v1/games/rocom/ingame/player/search'
     const headers = this.wegameHeaders()
     const payload = { uid: sanitizedUid, wait_ms: 5000 }
 
-    let data = await this.post(ctx, path, headers, payload)
-    if (!data) {
-      data = await this.get(ctx, path, headers, { uid: sanitizedUid, wait_ms: 5000 }, { silentFailureDetails: true })
+    let { status, data } = await this.requestWithStatus(ctx, 'POST', path, headers, {
+      json: payload,
+      acceptedStatuses: [200, 202],
+    })
+    if (status === 200 && data && this.isIngamePlayerPayload(data)) return data
+
+    if (status === null) {
+      const fallback = await this.requestWithStatus(ctx, 'GET', path, headers, {
+        params: payload,
+        acceptedStatuses: [200, 202],
+      })
+      status = fallback.status
+      data = fallback.data
+      if (status === 200 && data && this.isIngamePlayerPayload(data)) return data
     }
     if (!data) return null
     if (this.isIngamePlayerPayload(data)) return data
 
     const taskId = data.task_id || data.taskId || data.taskID
-    if (!taskId) return data
+    if (!taskId) {
+      if (status === 202) this.setLastError('玩家搜索任务已入队，但未返回 task_id')
+      return data
+    }
 
     for (let i = 0; i < 8; i++) {
       await new Promise(resolve => setTimeout(resolve, 1000))
-      const taskData = await this.get(
-        ctx,
-        `/api/v1/games/rocom/ingame/tasks/${taskId}`,
-        headers,
-        undefined,
-        { silentFailureDetails: true },
-      )
-      if (!taskData) return null
-      if (this.isIngamePlayerPayload(taskData)) return taskData
+      const task = await this.getIngameTask(ctx, taskId)
+      if (task.status === 200) return task.data
+      if (task.status === null) return null
     }
 
+    this.setLastError('Player search task is still queued, please retry later (task_id: ' + taskId + ')')
     return null
   }
 
@@ -362,6 +436,84 @@ export class RocomClient {
 
   async queryPetSize(ctx: Context, diameter: number, weight: number) {
     return this.get(ctx, '/api/v1/games/rocom/pet/size-query', this.wegameHeaders(), { diameter, weight })
+  }
+
+  async ingameHomeInfo(ctx: Context, uid: string, waitMs = 5000) {
+    const sanitizedUid = this.sanitizeUid(uid)
+    if (!sanitizedUid) {
+      this.setLastError('UID 涓嶈兘涓虹┖')
+      return null
+    }
+
+    const path = '/api/v1/games/rocom/ingame/home/info'
+    const headers = this.wegameHeaders()
+    const payload = { uid: sanitizedUid, wait_ms: waitMs }
+    let { status, data } = await this.requestWithStatus(ctx, 'POST', path, headers, {
+      json: payload,
+      acceptedStatuses: [200, 202],
+    })
+    if (status === 200 && data && !(data.task_id || data.taskId || data.taskID)) return data
+
+    if (status === null) {
+      const fallback = await this.requestWithStatus(ctx, 'GET', path, headers, {
+        params: payload,
+        acceptedStatuses: [200, 202],
+      })
+      status = fallback.status
+      data = fallback.data
+      if (status === 200 && data && !(data.task_id || data.taskId || data.taskID)) return data
+    }
+
+    const taskId = data?.task_id || data?.taskId || data?.taskID
+    if (!taskId) {
+      if (status === 202) this.setLastError('家园查询任务已入队，但未返回 task_id')
+      return null
+    }
+
+    for (let i = 0; i < 10; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      const task = await this.getIngameTask(ctx, taskId)
+      if (task.status === 200) return task.data
+      if (task.status === null) return null
+    }
+
+    this.setLastError(`Home query task is still queued, please retry later (task_id: ${taskId})`)
+    return null
+  }
+
+  async ingameMerchantInfo(ctx: Context, shopId: string | number) {
+    const params = { shop_id: shopId }
+    const data = await this.get(
+      ctx,
+      '/api/v1/games/rocom/ingame/merchant/info',
+      this.wegameHeaders(),
+      params,
+      { silentFailureDetails: true },
+    )
+    if (data) return data
+    return this.post(ctx, '/api/v1/games/rocom/ingame/merchant/info', this.wegameHeaders(), params)
+  }
+
+  async getFriendship(ctx: Context, fwToken: string, userIds: string, userIdentifier = '') {
+    return this.get(
+      ctx,
+      '/api/v1/games/rocom/social/friendship',
+      this.rocomHeaders(fwToken, userIdentifier),
+      { user_ids: userIds },
+    )
+  }
+
+  async getStudentState(ctx: Context, fwToken: string, accountType?: number, userIdentifier = '') {
+    const params: any = {}
+    if (accountType !== undefined) params.account_type = accountType
+    return this.get(ctx, '/api/v1/games/rocom/activity/student-state', this.rocomHeaders(fwToken, userIdentifier), params)
+  }
+
+  async getStudentPerks(ctx: Context, fwToken: string, area?: number, accountType?: number, userIdentifier = '') {
+    const params: any = {}
+    if (area !== undefined) params.area = area
+    if (accountType !== undefined) params.account_type = accountType
+    return this.get(ctx, '/api/v1/games/rocom/activity/perks', this.rocomHeaders(fwToken, userIdentifier), params)
   }
 
   async searchWikiPet(ctx: Context, query: string, limit = 10) {

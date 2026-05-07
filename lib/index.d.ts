@@ -12,7 +12,13 @@ export interface Config {
     autoRefreshTime: string[];
     merchantSubscriptionEnabled: boolean;
     merchantSubscriptionItems: string[];
+    merchantPrivateSubscriptionEnabled: boolean;
     merchantCheckInterval: number;
+    homeSubscriptionEnabled: boolean;
+    homeSubscriptionIntervalMinutes: number;
+    imageCompressionEnabled: boolean;
+    imageCompressionMinBytes: number;
+    imageCompressionLevel: number;
 }
 export declare const Config: Schema<Config>;
 export declare function apply(ctx: Context, config: Config): void;

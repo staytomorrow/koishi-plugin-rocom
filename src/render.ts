@@ -31,12 +31,18 @@ function normalizeTemplateResourcePaths(content: string): string {
 export class Renderer {
   constructor(private resPath: string) {}
 
+  resourceUrl(relativePath: string) {
+    return pathToFileURL(path.join(this.getResourceRoot(), relativePath)).href
+  }
+
   private getResourceRoot() {
+    const builtRoot = path.join(this.resPath, 'lib')
+    if (fs.existsSync(path.join(builtRoot, 'render-templates'))) return builtRoot
     return path.join(this.resPath, 'src')
   }
 
   private getTemplateRoot() {
-    return path.join(this.resPath, 'src', 'render-templates')
+    return path.join(this.getResourceRoot(), 'render-templates')
   }
 
   private getTemplatePath(templateName: string) {
@@ -126,6 +132,7 @@ export class Renderer {
           '.student-state-page',
           '.student-perks-page',
           '.student-page',
+          '.home-page',
         ]
 
         let target: any = null

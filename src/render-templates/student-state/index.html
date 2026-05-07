@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1200, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/student-state/style.css">
+</head>
+<body>
+  <div class="student-state-page state-page">
+    <div class="page-header">
+      <div class="page-title">{{title}}</div>
+      <div class="page-subtitle">{{subtitle}}</div>
+    </div>
+
+    <div class="hero-card">
+      <div class="hero-copy">
+        <div class="hero-title">{{heroTitle}}</div>
+        <div class="hero-value">{{heroValue}}</div>
+        <div class="hero-subvalue">{{heroSubvalue}}</div>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      {{each summaryCards item}}
+      <div class="summary-card">
+        <div class="summary-label">{{item.label}}</div>
+        <div class="summary-value">{{item.value}}</div>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="section-title">认证详情</div>
+    <div class="detail-card">
+      {{each detailItems item}}
+      <div class="detail-row">
+        <div class="detail-label">{{item.label}}</div>
+        <div class="detail-value">{{item.value}}</div>
+      </div>
+      {{/each}}
+      {{if !detailItems || !detailItems.length}}
+      <div class="empty-text">当前接口未返回更多认证字段。</div>
+      {{/if}}
+    </div>
+
+    {{if commandHint}}
+    <div class="command-hint">{{commandHint}}</div>
+    {{/if}}
+
+    <div class="footer">{{copyright}}</div>
+  </div>
+</body>
+</html>

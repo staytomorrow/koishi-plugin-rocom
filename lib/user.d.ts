@@ -10,11 +10,29 @@ export interface MerchantSubscription {
     group_id: string;
     channel_id?: string;
     platform?: string;
+    user_id?: string;
+    type?: string;
     mention_all: boolean;
     items: string[];
     last_push_round: string | null;
     last_matched_items: string[];
     updated_by: string;
+}
+export interface HomeSubscription {
+    key: string;
+    kind: 'garden' | 'inspiration';
+    uid: string;
+    channel_id?: string;
+    platform?: string;
+    guild_id?: string;
+    user_id?: string;
+    updated_by: string;
+    notify_state: {
+        first?: boolean;
+        all?: boolean;
+    };
+    updated_at: number;
+    last_push_time?: number;
 }
 export declare class UserManager {
     private store;
@@ -35,4 +53,15 @@ export declare class MerchantSubscriptionManager {
     get(key: string): MerchantSubscription | null;
     delete(key: string): boolean;
     getAll(): Record<string, MerchantSubscription>;
+}
+export declare class HomeSubscriptionManager {
+    private store;
+    constructor(dataDir: string);
+    upsert(key: string, sub: HomeSubscription): void;
+    deleteMatching(target: {
+        platform?: string;
+        channelId?: string;
+        userId?: string;
+    }, kind?: string, uid?: string): number;
+    getAll(): Record<string, HomeSubscription>;
 }

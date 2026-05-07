@@ -172,7 +172,7 @@ export function register(deps: PluginDeps) {
         fallbackLines.push(`[${binding.index}] ${binding.nickname} (ID: ${binding.role_id}) ${binding.type_label}${mark} · ${binding.created_at}`)
       })
       const png = await deps.renderer.renderHtml(ctx, 'bind-list', data)
-      await sendImageWithFallback(session, png, fallbackLines.join('\n'), 'account:bind-list')
+      await sendImageWithFallback(session, png, fallbackLines.join('\n'), 'account:bind-list', deps.config)
     })
 
   ctx.command('洛克').subcommand('.切换 <index:number>', '切换主账号')

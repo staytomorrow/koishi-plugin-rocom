@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/student-perks/style.css">
+</head>
+<body>
+  <div class="student-perks-page perks-page">
+    <div class="page-header">
+      <div class="page-title">{{title}}</div>
+      <div class="page-subtitle">{{subtitle}}</div>
+    </div>
+
+    <div class="hero-card">
+      <div class="hero-copy">
+        <div class="hero-title">{{heroTitle}}</div>
+        <div class="hero-value">{{heroValue}}</div>
+        <div class="hero-subvalue">{{heroSubvalue}}</div>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      {{each summaryCards item}}
+      <div class="summary-card">
+        <div class="summary-label">{{item.label}}</div>
+        <div class="summary-value">{{item.value}}</div>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="section-title">奖励列表</div>
+    <div class="perk-grid">
+      {{each perkCards item}}
+      <div class="perk-card">
+        <div class="perk-top">
+          <div class="perk-icon-wrap">
+            {{if item.icon}}
+            <img src="{{item.icon}}" class="perk-icon" alt="{{item.name}}">
+            {{else}}
+            <div class="perk-icon perk-icon-fallback">?</div>
+            {{/if}}
+          </div>
+          <div class="perk-main">
+            <div class="perk-name">{{item.name}}</div>
+            <div class="perk-meta">ID {{item.id}} | 数量 x{{item.count}}</div>
+          </div>
+          <div class="perk-state">{{item.stateText}}</div>
+        </div>
+        <div class="perk-desc">{{item.desc}}</div>
+        <div class="perk-code">状态码 {{item.stateCode}}</div>
+      </div>
+      {{/each}}
+      {{if !perkCards || !perkCards.length}}
+      <div class="empty-card">当前接口未返回奖励列表。</div>
+      {{/if}}
+    </div>
+
+    {{if detailItems && detailItems.length}}
+    <div class="section-title">补充信息</div>
+    <div class="detail-card">
+      {{each detailItems item}}
+      <div class="detail-row">
+        <div class="detail-label">{{item.label}}</div>
+        <div class="detail-value">{{item.value}}</div>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+
+    {{if commandHint}}
+    <div class="command-hint">{{commandHint}}</div>
+    {{/if}}
+
+    <div class="footer">{{copyright}}</div>
+  </div>
+</body>
+</html>

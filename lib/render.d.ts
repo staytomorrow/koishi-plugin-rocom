@@ -2,6 +2,8 @@ import { Context } from 'koishi';
 export declare class Renderer {
     private resPath;
     constructor(resPath: string);
+    resourceUrl(relativePath: string): string;
+    private getResourceRoot;
     private getTemplateRoot;
     private getTemplatePath;
     private getStylePath;

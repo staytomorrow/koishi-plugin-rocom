@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1100, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/inspect/style.css">
+</head>
+<body>
+  <div class="inspect-page">
+    <div class="inspect-header">
+      <div class="inspect-title">{{title}}</div>
+      <div class="inspect-subtitle">{{subtitle}}</div>
+    </div>
+
+    {{if rows && rows.length}}
+    <div class="inspect-table">
+      {{each rows row}}
+      <div class="inspect-row level-{{row.level || 0}}">
+        <div class="inspect-label">{{row.label || row.field}}</div>
+        <div class="inspect-value">{{row.value}}</div>
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+
+    {{if notes && notes.length}}
+    <div class="notes-card">
+      <div class="card-title">附加说明</div>
+      {{each notes note}}
+      <div class="note-item">{{note}}</div>
+      {{/each}}
+    </div>
+    {{/if}}
+
+    <div class="payload-card">
+      <div class="card-title">原始数据</div>
+      <pre class="payload-text">{{payload_text}}</pre>
+    </div>
+
+    {{if commandHint}}
+    <div class="command-hint">{{commandHint}}</div>
+    {{/if}}
+
+    <div class="footer">{{copyright}}</div>
+  </div>
+</body>
+</html>

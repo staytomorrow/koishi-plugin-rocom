@@ -1,0 +1,182 @@
+@font-face {
+    font-family: "rocom-social";
+    src: url("../../ttf/HYWenHei-85W-1.ttf") format("truetype");
+    font-display: swap;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 26px;
+    background: #efe6d8;
+    display: inline-block;
+    font-family: "rocom-social", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+.social-page {
+    width: 1180px;
+    padding: 34px 36px 30px;
+    box-sizing: border-box;
+    border-radius: 28px;
+    color: #322618;
+    background:
+        linear-gradient(rgba(40, 29, 18, 0.10), rgba(40, 29, 18, 0.10)),
+        url("../../img/ercode-bg.D1ccSQKH.png") center/cover no-repeat;
+}
+
+.page-header {
+    padding-bottom: 18px;
+    border-bottom: 2px dashed rgba(141, 106, 68, 0.28);
+}
+
+.page-title {
+    font-size: 44px;
+    line-height: 1.1;
+    font-weight: 800;
+}
+
+.page-subtitle {
+    margin-top: 10px;
+    font-size: 22px;
+    line-height: 1.4;
+    color: #6d5944;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 22px;
+}
+
+.summary-card,
+.user-card,
+.empty-card,
+.result-strip,
+.command-hint {
+    border: 1px solid rgba(141, 106, 68, 0.16);
+    border-radius: 20px;
+    background: rgba(255, 252, 247, 0.82);
+    box-shadow: 0 10px 26px rgba(83, 58, 35, 0.08);
+}
+
+.summary-card {
+    padding: 18px 20px;
+}
+
+.summary-label {
+    font-size: 18px;
+    color: #8b735b;
+}
+
+.summary-value {
+    margin-top: 10px;
+    font-size: 30px;
+    line-height: 1.2;
+    font-weight: 800;
+}
+
+.section-title {
+    margin: 28px 0 16px;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.user-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+}
+
+.user-card {
+    padding: 22px;
+}
+
+.user-card-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 18px;
+}
+
+.user-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(141, 106, 68, 0.10);
+}
+
+.user-row:last-of-type {
+    border-bottom: none;
+}
+
+.user-row-label {
+    font-size: 20px;
+    color: #7a6550;
+}
+
+.user-row-value {
+    font-size: 22px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.user-badge {
+    display: inline-flex;
+    margin-top: 16px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(211, 144, 53, 0.14);
+    color: #9f6621;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.user-desc {
+    margin-top: 14px;
+    font-size: 18px;
+    line-height: 1.5;
+    color: #6d5944;
+}
+
+.empty-card {
+    grid-column: 1 / -1;
+    padding: 28px;
+    font-size: 22px;
+    color: #6d5944;
+}
+
+.command-hint {
+    margin-top: 20px;
+    padding: 14px 18px;
+    font-size: 20px;
+    color: #6d5944;
+}
+
+.result-strip {
+    margin-top: 18px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.result-strip-label {
+    font-size: 20px;
+    color: #6d5944;
+    font-weight: 700;
+}
+
+.result-strip-value {
+    font-size: 22px;
+    color: #322618;
+    font-weight: 800;
+}
+
+.footer {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 16px;
+    color: rgba(113, 93, 73, 0.88);
+}

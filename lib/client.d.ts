@@ -3,6 +3,7 @@ export declare class RocomClient {
     private baseUrl;
     private apiKey;
     private timeout;
+    private lastError;
     constructor(baseUrl: string, apiKey: string, timeout?: number);
     private sanitizeUid;
     private wegameHeaders;
@@ -17,6 +18,8 @@ export declare class RocomClient {
     private get;
     private post;
     private delete;
+    private requestWithStatus;
+    private getIngameTask;
     qqQrLogin(ctx: Context, userIdentifier: string): Promise<any>;
     qqQrStatus(ctx: Context, fwToken: string, userIdentifier: string): Promise<any>;
     wechatQrLogin(ctx: Context, userIdentifier: string): Promise<any>;
@@ -27,6 +30,8 @@ export declare class RocomClient {
     deleteBinding(ctx: Context, bindingId: string, userIdentifier: string): Promise<boolean>;
     getRole(ctx: Context, fwToken: string, accountType?: number, userIdentifier?: string): Promise<any>;
     getEvaluation(ctx: Context, fwToken: string, userIdentifier?: string): Promise<any>;
+    getLastError(defaultMessage?: string): string;
+    private setLastError;
     getPetSummary(ctx: Context, fwToken: string, userIdentifier?: string): Promise<any>;
     getCollection(ctx: Context, fwToken: string, userIdentifier?: string): Promise<any>;
     getBattleOverview(ctx: Context, fwToken: string, userIdentifier?: string): Promise<any>;
@@ -38,6 +43,11 @@ export declare class RocomClient {
     getExchangePosters(ctx: Context, fwToken: string, pageNo?: number, userIdentifier?: string): Promise<any>;
     getMerchantInfo(ctx: Context, refresh?: boolean): Promise<any>;
     queryPetSize(ctx: Context, diameter: number, weight: number): Promise<any>;
+    ingameHomeInfo(ctx: Context, uid: string, waitMs?: number): Promise<any>;
+    ingameMerchantInfo(ctx: Context, shopId: string | number): Promise<any>;
+    getFriendship(ctx: Context, fwToken: string, userIds: string, userIdentifier?: string): Promise<any>;
+    getStudentState(ctx: Context, fwToken: string, accountType?: number, userIdentifier?: string): Promise<any>;
+    getStudentPerks(ctx: Context, fwToken: string, area?: number, accountType?: number, userIdentifier?: string): Promise<any>;
     searchWikiPet(ctx: Context, query: string, limit?: number): Promise<any>;
     searchWikiSkill(ctx: Context, query: string, limit?: number): Promise<any>;
 }

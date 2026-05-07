@@ -2,7 +2,7 @@ import { Context, Schema } from 'koishi'
 import { } from 'koishi-plugin-puppeteer'
 import path from 'node:path'
 import { RocomClient } from './client'
-import { UserManager, MerchantSubscriptionManager } from './user'
+import { UserManager, MerchantSubscriptionManager, HomeSubscriptionManager } from './user'
 import { EggService } from './egg-service'
 import { Renderer } from './render'
 import { PluginDeps } from './types'
@@ -30,20 +30,38 @@ export interface Config {
   autoRefreshTime: string[]
   merchantSubscriptionEnabled: boolean
   merchantSubscriptionItems: string[]
+  merchantPrivateSubscriptionEnabled: boolean
   merchantCheckInterval: number
+  homeSubscriptionEnabled: boolean
+  homeSubscriptionIntervalMinutes: number
+  imageCompressionEnabled: boolean
+  imageCompressionMinBytes: number
+  imageCompressionLevel: number
 }
 
-export const Config: Schema<Config> = Schema.object({
-  apiBaseUrl: Schema.string().default('https://wegame.shallow.ink').description('API 基础地址'),
-  wegameApiKey: Schema.string().default('').description('WeGame API Key'),
-  qqLoginDebugMode: Schema.boolean().default(false).description('QQ 扫码登录调试模式：扫码成功后输出用户 fwt（敏感凭证，请仅调试时开启）'),
-  adminUserIds: Schema.array(String).default([]).description('管理员用户 ID 列表（允许执行管理员命令）'),
-  autoRefreshEnabled: Schema.boolean().default(false).description('启用自动刷新凭证'),
-  autoRefreshTime: Schema.array(String).default(['00:00', '12:00']).description('自动刷新时间'),
-  merchantSubscriptionEnabled: Schema.boolean().default(true).description('启用远行商人订阅'),
-  merchantSubscriptionItems: Schema.array(String).default(['国王球', '棱镜球', '炫彩精灵蛋']).description('默认订阅商品'),
-  merchantCheckInterval: Schema.number().default(300000).description('商人检查间隔(ms)'),
-})
+export const Config: Schema<Config> = Schema.intersect([
+  Schema.object({
+    apiBaseUrl: Schema.string().default('https://wegame.shallow.ink').description('API 基础地址'),
+    wegameApiKey: Schema.string().default('').description('WeGame API Key'),
+    qqLoginDebugMode: Schema.boolean().default(false).description('QQ 扫码登录调试模式：扫码成功后输出用户 fwt（敏感凭证，请仅调试时开启）'),
+    adminUserIds: Schema.array(String).default([]).description('管理员用户 ID 列表（仅用于管理员命令）'),
+    autoRefreshEnabled: Schema.boolean().default(false).description('启用自动刷新凭证'),
+    autoRefreshTime: Schema.array(String).default(['00:00', '12:00']).description('自动刷新时间'),
+  }).description('基础设置'),
+  Schema.object({
+    imageCompressionEnabled: Schema.boolean().default(true).description('发送图片前启用 PNG 无损压缩。失败或压缩后不更小时会发送原图。'),
+    imageCompressionMinBytes: Schema.number().default(262144).description('触发压缩的最小图片大小，单位字节。低于此大小直接发送原图。'),
+    imageCompressionLevel: Schema.number().min(0).max(9).default(9).description('PNG zlib 压缩等级，0-9，数值越大越慢但通常更小。'),
+  }).description('图片压缩设置'),
+  Schema.object({
+    merchantSubscriptionEnabled: Schema.boolean().default(true).description('启用远行商人订阅'),
+    merchantSubscriptionItems: Schema.array(String).default(['国王球', '棱镜球', '炫彩精灵蛋']).description('默认订阅商品'),
+    merchantCheckInterval: Schema.number().default(300000).description('商人检查间隔(ms)'),
+    merchantPrivateSubscriptionEnabled: Schema.boolean().default(true).description('允许个人私聊订阅远行商人推送'),
+    homeSubscriptionEnabled: Schema.boolean().default(true).description('启用家园菜园和灵感订阅推送'),
+    homeSubscriptionIntervalMinutes: Schema.number().default(5).description('家园订阅检查间隔（分钟）'),
+  }).description('订阅推送设置'),
+])
 
 export function apply(ctx: Context, config: Config) {
   setupRoleTokenModel(ctx)
@@ -51,12 +69,13 @@ export function apply(ctx: Context, config: Config) {
   const dataDir = path.join(ctx.baseDir, 'data', 'rocom')
   const userMgr = new UserManager(dataDir)
   const merchantSubMgr = new MerchantSubscriptionManager(dataDir)
+  const homeSubMgr = new HomeSubscriptionManager(dataDir)
   const resPath = path.resolve(__dirname, '..')
   const renderer = new Renderer(resPath)
   const searcheggsDir = path.join(resPath, 'src', 'render-templates', 'searcheggs')
   const eggService = new EggService(searcheggsDir)
 
-  const deps: PluginDeps = { ctx, config, client, userMgr, merchantSubMgr, eggService, renderer }
+  const deps: PluginDeps = { ctx, config, client, userMgr, merchantSubMgr, homeSubMgr, eggService, renderer }
 
   ctx.on('ready', () => {
     migrateRoleTokensToUserId(ctx).catch((err) => {

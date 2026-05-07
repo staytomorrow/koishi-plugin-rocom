@@ -36,12 +36,22 @@ Koishi 版洛克王国数据查询插件。插件基于 WeGame / 后端接口提
 | `apiBaseUrl` | `https://wegame.shallow.ink` | 后端 API 基础地址 |
 | `wegameApiKey` | 空 | WeGame API Key，如后端要求鉴权则填写 |
 | `qqLoginDebugMode` | `false` | QQ 扫码登录调试模式，可能输出敏感凭证，仅调试时开启 |
-| `adminUserIds` | `[]` | Bot 管理员用户 ID 列表，用于管理员命令和订阅管理兜底权限 |
+| `adminUserIds` | `[]` | Bot 管理员用户 ID 列表，用于管理员命令 |
 | `autoRefreshEnabled` | `false` | 是否启用自动刷新凭证 |
 | `autoRefreshTime` | `["00:00", "12:00"]` | 自动刷新凭证的时间点 |
 | `merchantSubscriptionEnabled` | `true` | 是否启用远行商人订阅检查 |
 | `merchantSubscriptionItems` | `["国王球", "棱镜球", "炫彩精灵蛋"]` | 默认关注的远行商人商品 |
 | `merchantCheckInterval` | `300000` | 远行商人订阅检查间隔，单位毫秒 |
+| `merchantPrivateSubscriptionEnabled` | `true` | 是否允许私聊订阅远行商人推送 |
+| `homeSubscriptionEnabled` | `true` | 是否启用家园菜园和灵感订阅推送 |
+| `homeSubscriptionIntervalMinutes` | `5` | 家园订阅检查间隔，单位分钟 |
+| `imageCompressionEnabled` | `true` | 是否在发送图片前启用 PNG 无损压缩 |
+| `imageCompressionMinBytes` | `262144` | 触发压缩的最小图片大小，单位字节 |
+| `imageCompressionLevel` | `9` | PNG zlib 压缩等级，范围 `0-9`，数值越大通常越小但更耗时 |
+
+### 图片压缩设置
+
+后台配置页中有单独的“图片压缩设置”分组。该功能会在图片发送前对 PNG 的 IDAT 数据做无损重压缩，不会改变图片尺寸、画质或透明度。若压缩失败，或压缩后文件没有变小，会自动发送原图。
 
 > 图片位置：插件配置页截图。建议插入 `docs/images/config.png`。
 
@@ -256,7 +266,7 @@ Koishi 版洛克王国数据查询插件。插件基于 WeGame / 后端接口提
 
 ### `订阅远行商人 [商品名...]`
 
-在群聊中订阅远行商人商品提醒。仅群管理员或 `adminUserIds` 中配置的 Bot 管理员可以设置。
+在群聊中订阅远行商人商品提醒。群内操作仅 `adminUserIds` 中配置的 Bot 管理员可设置；私聊场景支持个人自行订阅（需开启 `merchantPrivateSubscriptionEnabled`）。
 
 查看当前订阅：
 
@@ -276,13 +286,47 @@ Koishi 版洛克王国数据查询插件。插件基于 WeGame / 后端接口提
 
 ### `取消订阅远行商人`
 
-取消当前群聊的远行商人订阅。仅群管理员或 `adminUserIds` 中配置的 Bot 管理员可以操作。
+取消当前群聊的远行商人订阅。群内操作仅 `adminUserIds` 中配置的 Bot 管理员可以操作；私聊场景可自行取消个人订阅。
 
 ```text
 取消订阅远行商人
 ```
 
 > 图片位置：取消订阅截图。建议插入 `docs/images/merchant-unsubscribe.png`。
+
+## 家园订阅
+
+### `订阅家园菜园 [uid]`
+
+订阅指定 UID 的家园菜园成熟提醒。私聊场景可自行订阅；群聊场景仅 `adminUserIds` 中配置的 Bot 管理员可设置。
+
+```text
+订阅家园菜园
+订阅家园菜园 12345678
+```
+
+不传 `uid` 时，会优先使用你当前绑定账号的 UID。
+
+### `订阅家园灵感 [uid]`
+
+订阅指定 UID 的家园精灵灵感完成提醒。私聊场景可自行订阅；群聊场景仅 `adminUserIds` 中配置的 Bot 管理员可设置。
+
+```text
+订阅家园灵感
+订阅家园灵感 12345678
+```
+
+不传 `uid` 时，会优先使用你当前绑定账号的 UID。
+
+### `取消订阅家园 [kind] [uid]`
+
+取消当前会话的家园订阅。私聊场景可自行取消；群聊场景仅 `adminUserIds` 中配置的 Bot 管理员可操作。
+
+```text
+取消订阅家园
+取消订阅家园 菜园
+取消订阅家园 灵感 12345678
+```
 
 ## Wiki 查询
 

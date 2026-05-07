@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1200, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/friendship/style.css">
+</head>
+<body>
+  <div class="friendship-page social-page">
+    <div class="page-header">
+      <div class="page-title">{{title}}</div>
+      <div class="page-subtitle">{{subtitle}}</div>
+    </div>
+
+    <div class="summary-grid">
+      {{each summaryCards item}}
+      <div class="summary-card">
+        <div class="summary-label">{{item.label}}</div>
+        <div class="summary-value">{{item.value}}</div>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="section-title">好友对象</div>
+    <div class="user-grid">
+      {{each userCards item}}
+      <div class="user-card">
+        <div class="user-card-title">{{item.title}}</div>
+        <div class="user-row">
+          <span class="user-row-label">用户 ID</span>
+          <span class="user-row-value">{{item.userId}}</span>
+        </div>
+        <div class="user-row">
+          <span class="user-row-label">关系状态</span>
+          <span class="user-row-value">{{item.statusText}}</span>
+        </div>
+        <div class="user-desc">{{item.statusDesc}}</div>
+        <div class="user-badge">状态码 {{item.statusCode}}</div>
+      </div>
+      {{/each}}
+      {{if !userCards || !userCards.length}}
+      <div class="empty-card">当前接口未返回可展示的好友对象。</div>
+      {{/if}}
+    </div>
+
+    <div class="result-strip">
+      <span class="result-strip-label">{{resultDesc}}</span>
+      <span class="result-strip-value">错误码 {{resultCode}}</span>
+    </div>
+
+    {{if commandHint}}
+    <div class="command-hint">{{commandHint}}</div>
+    {{/if}}
+
+    <div class="footer">{{copyright}}</div>
+  </div>
+</body>
+</html>

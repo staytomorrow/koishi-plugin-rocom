@@ -2,12 +2,15 @@
 import { PluginDeps } from '../types'
 import { getPrimaryToken, notLoggedInHint } from './account'
 import { sendImageWithFallback } from '../send-image'
+import { sendScheduledMessage } from '../subscription-send'
+import fs from 'node:fs'
+import path from 'node:path'
 
 const logger = new Logger('rocom-query')
 
 async function sendImage(deps: PluginDeps, session: any, templateName: string, data: any, fallback: string) {
   const png = await deps.renderer.renderHtml(deps.ctx, templateName, data)
-  await sendImageWithFallback(session, png, fallback, `query:${templateName}`)
+  await sendImageWithFallback(session, png, fallback, `query:${templateName}`, deps.config)
 }
 
 type IngamePlayerRow = {
@@ -367,9 +370,25 @@ function homePlantIcon(deps: PluginDeps, iconId: any): string {
   return deps.renderer.resourceUrl(`render-templates/home/img/home_icon/${text}_2.png`)
 }
 
+let homePlantMapCache: Record<string, any> | null = null
+
+function loadHomePlantMap(): Record<string, any> {
+  if (homePlantMapCache) return homePlantMapCache
+  const filePath = path.resolve(__dirname, '..', 'render-templates', 'home', 'data', 'home_item_list.json')
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+    homePlantMapCache = data && typeof data === 'object' ? data : {}
+  } catch (err) {
+    logger.warn(`加载家园作物映射失败: ${err}`)
+    homePlantMapCache = {}
+  }
+  return homePlantMapCache
+}
+
 function extractHomePlants(deps: PluginDeps, homeInfo: any): any[] {
   const cell = homeCellInfo(homeInfo)
   const plantSources: any[] = []
+  const plantMap = loadHomePlantMap()
   if (Array.isArray(homeInfo?.home_plants)) plantSources.push(...homeInfo.home_plants)
   const plantInfo = cell?.home_plant_info || {}
   for (const land of Array.isArray(plantInfo.home_plant_land_list) ? plantInfo.home_plant_land_list : []) {
@@ -380,7 +399,8 @@ function extractHomePlants(deps: PluginDeps, homeInfo: any): any[] {
     const plantData = raw.plant_info && typeof raw.plant_info === 'object' ? raw.plant_info : raw
     const plantId = raw.plant_seed_id || raw.plant_cfg_id || raw.plant_id || plantData.id
     if (['', '0'].includes(String(plantId || '0'))) return null
-    const iconId = plantData.icon_url || plantData.iconUrl || raw.icon_url || raw.iconUrl || plantData.iconid || raw.iconid || raw.icon_id
+    const mappedPlant = plantMap[String(plantId)] || {}
+    const iconId = plantData.icon_url || plantData.iconUrl || raw.icon_url || raw.iconUrl || plantData.iconid || raw.iconid || raw.icon_id || mappedPlant.iconid
     let readyAt = normalizeEpochSeconds(raw.plant_rip_time || raw.rip_time || raw.end_time)
     const leftTime = Number(raw.left_time || 0)
     if (!readyAt && leftTime > 0) readyAt = nowTs + leftTime
@@ -393,7 +413,7 @@ function extractHomePlants(deps: PluginDeps, homeInfo: any): any[] {
     return {
       id: String(plantId),
       landIndex: raw.slot_index || raw.land_index || index + 1,
-      plantName: plantData.name || raw.name || `种子 ${plantId}`,
+      plantName: plantData.name || raw.name || mappedPlant.name || `种子 ${plantId}`,
       iconUrl: homePlantIcon(deps, iconId),
       stateType: ready ? 'ready' : 'warning',
       statusText: ready ? '已成熟' : '成长中',
@@ -445,11 +465,6 @@ function buildHomeRenderData(deps: PluginDeps, res: any, uid: string) {
     guardEmptyText: '后端当前返回中没有守卫精灵字段',
     updatedAt: new Date(createdAt ? createdAt * 1000 : Date.now()).toLocaleString('zh-CN'),
   }
-}
-
-function playerField(parsed: any, field: string, defaultValue = '-') {
-  const value = String(parsed?.rowMap?.[field] ?? defaultValue).trim()
-  return value || defaultValue
 }
 
 function buildPlayerSearchRenderData(payload: any, uid: string) {
@@ -632,9 +647,8 @@ function homeSubscriptionKey(session: any, uid: string, kind: 'garden' | 'inspir
   return [target.platform, target.channelId || 'private', target.userId || session?.guildId || '', uid, kind].join(':')
 }
 
-function isSessionAdmin(session: any, adminUserIds: string[]) {
-  const roles = (session?.event?.member?.roles || []) as any[]
-  return roles.includes('admin') || roles.includes('owner') || adminUserIds.includes(session?.userId)
+function isBotAdmin(session: any, adminUserIds: string[]) {
+  return adminUserIds.includes(session?.userId || '')
 }
 
 async function resolveHomeUid(deps: PluginDeps, session: any, uid = '') {
@@ -644,12 +658,10 @@ async function resolveHomeUid(deps: PluginDeps, session: any, uid = '') {
 }
 
 async function subscribeHome(deps: PluginDeps, session: any, uid: string, kind: 'garden' | 'inspiration') {
-  if (session?.guildId && !isSessionAdmin(session, deps.config.adminUserIds)) {
-    return kind === 'garden' ? '仅当前群管理员可以配置家园菜园订阅。' : '仅当前群管理员可以配置家园灵感订阅。'
-  }
+  const target = sessionTarget(session)
+  if (!target.userId && !isBotAdmin(session, deps.config.adminUserIds)) return '此指令仅限管理员使用。'
   const targetUid = await resolveHomeUid(deps, session, uid)
   if (!targetUid) return kind === 'garden' ? '请提供玩家 UID，或先完成绑定后再订阅家园菜园。' : '请提供玩家 UID，或先完成绑定后再订阅家园灵感。'
-  const target = sessionTarget(session)
   const key = homeSubscriptionKey(session, targetUid, kind)
   deps.homeSubMgr.upsert(key, {
     key,
@@ -695,8 +707,11 @@ function homeSubscriptionMessage(uid: string, kind: 'garden' | 'inspiration', le
 async function checkHomeSubscriptions(deps: PluginDeps) {
   const subs = deps.homeSubMgr.getAll()
   const cache = new Map<string, any>()
+  let checkedCount = 0
+  let pushedCount = 0
   for (const [key, sub] of Object.entries(subs)) {
     if (!sub.uid || !['garden', 'inspiration'].includes(sub.kind)) continue
+    checkedCount++
     if (!cache.has(sub.uid)) {
       cache.set(sub.uid, await deps.client.ingameHomeInfo(deps.ctx, sub.uid))
     }
@@ -722,15 +737,22 @@ async function checkHomeSubscriptions(deps: PluginDeps) {
     }
     const messages = pushLevels.map(level => homeSubscriptionMessage(sub.uid, sub.kind, level, totalCount, readyItems, names))
     try {
-      const channel = sub.platform && sub.channel_id ? `${sub.platform}:${sub.channel_id}` : ''
-      if (channel) await deps.ctx.broadcast([channel], messages.join('\n\n'))
+      const sent = await sendScheduledMessage(deps.ctx, {
+        platform: sub.platform,
+        channelId: sub.channel_id || sub.guild_id || sub.user_id || '',
+        guildId: sub.guild_id || '',
+        userId: sub.user_id || '',
+      }, messages.join('\n\n'))
+      if (!sent) continue
     } catch (e) {
       logger.warn(`家园订阅推送失败: ${e}`)
       continue
     }
     for (const level of pushLevels) notifyState[level] = true
+    pushedCount += pushLevels.length
     deps.homeSubMgr.upsert(key, { ...sub, notify_state: notifyState, last_push_time: Math.floor(Date.now() / 1000) })
   }
+  return { subscriptions: Object.keys(subs).length, checked: checkedCount, pushed: pushedCount }
 }
 
 export function register(deps: PluginDeps) {
@@ -1228,10 +1250,18 @@ export function register(deps: PluginDeps) {
 
   ctx.command('取消订阅家园 [kind:string] [uid:string]', '取消当前会话的家园订阅')
     .action(async ({ session }, kind = '全部', uid = '') => {
-      if (session?.guildId && !isSessionAdmin(session, deps.config.adminUserIds)) return '仅当前群管理员可以取消家园订阅。'
+      const target = sessionTarget(session)
+      if (!target.userId && !isBotAdmin(session, deps.config.adminUserIds)) return '此指令仅限管理员使用。'
       const kindMap: Record<string, string> = { '菜园': 'garden', '灵感': 'inspiration', '全部': '', all: '', garden: 'garden', inspiration: 'inspiration' }
-      const deleted = deps.homeSubMgr.deleteMatching(sessionTarget(session), kindMap[String(kind || '全部')] ?? '', String(uid || '').trim())
+      const deleted = deps.homeSubMgr.deleteMatching(target, kindMap[String(kind || '全部')] ?? '', String(uid || '').trim())
       return deleted ? `已取消 ${deleted} 条家园订阅。` : '当前会话没有匹配的家园订阅。'
+    })
+
+  ctx.command('洛克').subcommand('.调试家园订阅', '立即执行一次家园订阅检查')
+    .action(async ({ session }) => {
+      if (!isBotAdmin(session, deps.config.adminUserIds)) return '此指令仅限管理员使用。'
+      const result = await checkHomeSubscriptions(deps)
+      return `家园订阅检查完成：订阅 ${result.subscriptions} 条，检查 ${result.checked} 条，推送 ${result.pushed} 档提醒。`
     })
 
   if (deps.config.homeSubscriptionEnabled) {

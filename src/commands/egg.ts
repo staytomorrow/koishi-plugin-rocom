@@ -9,7 +9,7 @@ type ParsedHeight = {
 }
 
 function petName(p: any): string {
-  return p?.localized?.zh?.name || p?.name || '???'
+  return p?.localized?.zh?.name || p?.name || '未知精灵'
 }
 
 function parseHeightValue(raw: unknown): ParsedHeight | null {
@@ -57,7 +57,7 @@ async function sendEggImage(
   fallback: string,
 ) {
   const png = await deps.renderer.renderHtml(deps.ctx, templateName, data)
-  await sendImageWithFallback(session, png, fallback, `egg:${templateName}`)
+  await sendImageWithFallback(session, png, fallback, `egg:${templateName}`, deps.config)
 }
 
 export function register(deps: PluginDeps) {

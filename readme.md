@@ -1,4 +1,5 @@
 # koishi-plugin-rocom
+注意，本项目仍处于开发调试期，可能会有未知BUG的产生。  
 > APIKey  
 > sk-ba042e079cf9ccb30e72b3d5af458f45  
 > sk-c7952558b84a176b76d0215760732330  

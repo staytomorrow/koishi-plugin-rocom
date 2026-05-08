@@ -135,7 +135,7 @@ export class RocomClient {
         stack: err?.stack,
       } : undefined,
     }
-    console.warn(`[rocom-client] ${method} ${path} detailed failure\n${this.stringifyForLog(details)}`)
+    logger.warn(`${method} ${path} detailed failure\n${this.stringifyForLog(details)}`)
   }
 
   private async get(

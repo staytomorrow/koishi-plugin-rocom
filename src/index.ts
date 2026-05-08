@@ -1,4 +1,4 @@
-import { Context, Schema } from 'koishi'
+import { Context, Logger, Schema } from 'koishi'
 import fs from 'node:fs'
 import {} from 'koishi-plugin-puppeteer'
 import path from 'node:path'
@@ -22,6 +22,8 @@ import { sendImageWithFallback } from './send-image'
 
 export const name = 'rocom'
 export const inject = { required: ['puppeteer', 'database'] }
+
+const logger = new Logger('rocom')
 
 type MenuItem = {
   cmd: string
@@ -141,7 +143,7 @@ export const Config: Schema<Config> = Schema.intersect([
   }).description('图片压缩设置'),
   Schema.object({
     merchantSubscriptionEnabled: Schema.boolean().default(true).description('启用远行商人订阅'),
-    merchantSubscriptionItems: Schema.array(String).default(['国王球', '梅花镜球', '炫彩精灵蛋']).description('默认订阅商品'),
+    merchantSubscriptionItems: Schema.array(String).default(['国王球', '棱镜球', '炫彩精灵蛋']).description('默认订阅商品'),
     merchantCheckInterval: Schema.number().default(300000).description('商人检查间隔，单位毫秒'),
     merchantPrivateSubscriptionEnabled: Schema.boolean().default(true).description('允许个人私聊订阅远行商人推送'),
     homeSubscriptionEnabled: Schema.boolean().default(true).description('启用家园菜园和灵感订阅推送'),
@@ -168,10 +170,10 @@ export function apply(ctx: Context, config: Config) {
 
   ctx.on('ready', () => {
     migrateRoleTokensToUserId(ctx).catch((err) => {
-      console.warn(`[rocom] role token migration failed: ${err}`)
+      logger.warn(`role token migration failed: ${err}`)
     })
     migrateLegacyFrameworkTokens(ctx, userMgr).catch((err) => {
-      console.warn(`[rocom] legacy framework token migration failed: ${err}`)
+      logger.warn(`legacy framework token migration failed: ${err}`)
     })
   })
 

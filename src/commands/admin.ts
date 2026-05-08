@@ -56,22 +56,36 @@ export function register(deps: PluginDeps) {
       const allUsers = userMgr.getAllUsersBindings()
       let totalInvalid = 0
       let totalValid = 0
+      let totalSkipped = 0
 
       for (const [userId, bindings] of Object.entries(allUsers)) {
         const token = await getRoleToken(ctx, userId)
         if (!token?.fwt) {
           logger.warn(`用户 ${userId} 没有可用的 fwt，跳过失效检测`)
+          totalSkipped += bindings.length
           continue
         }
 
-        const fwToken = token.fwt
         const valid: typeof bindings = []
 
         for (const binding of bindings) {
-          const roleRes = await client.getRole(ctx, fwToken, undefined, userId)
+          const refreshRes = binding.binding_id
+            ? await client.refreshBinding(ctx, binding.binding_id, userId)
+            : null
+          const fwt = refreshRes?.framework_token || token.fwt
+          const roleRes = await client.getRole(ctx, fwt, undefined, userId)
           if (roleRes?.role) {
             valid.push(binding)
             totalValid++
+            if (refreshRes?.framework_token) {
+              await upsertRoleToken(ctx, {
+                userId,
+                fwt: refreshRes.framework_token,
+                bindingId: binding.binding_id,
+                roleId: binding.role_id,
+                loginType: binding.login_type,
+              })
+            }
             continue
           }
 
@@ -91,16 +105,22 @@ export function register(deps: PluginDeps) {
         }
       }
 
-      return totalInvalid > 0
-        ? `清理完成：移除 ${totalInvalid} 个无效绑定，剩余 ${totalValid} 个有效绑定。`
+      const parts = [`清理完成：移除 ${totalInvalid} 个无效绑定，剩余 ${totalValid} 个有效绑定。`]
+      if (totalSkipped) parts.push(`跳过 ${totalSkipped} 个（无可用凭证）。`)
+      return totalInvalid > 0 || totalSkipped > 0
+        ? parts.join('')
         : `所有绑定均有效，无需清理。共 ${totalValid} 个有效绑定。`
     })
 
   if (config.autoRefreshEnabled) {
+    let lastRefreshKey = ''
     ctx.setInterval(async () => {
       const now = new Date()
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
       if (!config.autoRefreshTime.includes(timeStr)) return
+      const refreshKey = `${now.toDateString()}-${timeStr}`
+      if (refreshKey === lastRefreshKey) return
+      lastRefreshKey = refreshKey
 
       const allUsers = userMgr.getAllUsersBindings()
       for (const [userId] of Object.entries(allUsers)) {

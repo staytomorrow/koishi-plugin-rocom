@@ -129,11 +129,12 @@ export class Renderer {
           '.player-search-page',
           '.ingame-shop-page',
           '.friendship-page',
-          '.student-state-page',
-          '.student-perks-page',
-          '.student-page',
-          '.home-page',
-        ]
+                    '.student-state-page',
+                    '.student-perks-page',
+                    '.student-page',
+                    '.merchant-page',
+                    '.home-page',
+                ]
 
         let target: any = null
         for (const selector of selectors) {

@@ -14,12 +14,12 @@ export declare class RocomClient {
     private sanitizeForLog;
     private headersForLog;
     private stringifyForLog;
-    private isApiKeyPermissionUndeclaredError;
     private logRequestFailureDetails;
     private get;
     private post;
     private delete;
     private requestWithStatus;
+    private requestIngameWithFallback;
     private getIngameTask;
     qqQrLogin(ctx: Context, userIdentifier: string): Promise<any>;
     qqQrStatus(ctx: Context, fwToken: string, userIdentifier: string): Promise<any>;

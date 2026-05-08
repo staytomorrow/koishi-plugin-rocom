@@ -1,4 +1,5 @@
 import { Context, Schema } from 'koishi'
+import fs from 'node:fs'
 import {} from 'koishi-plugin-puppeteer'
 import path from 'node:path'
 import { RocomClient } from './client'
@@ -157,7 +158,10 @@ export function apply(ctx: Context, config: Config) {
   const homeSubMgr = new HomeSubscriptionManager(dataDir)
   const resPath = path.resolve(__dirname, '..')
   const renderer = new Renderer(resPath)
-  const searcheggsDir = path.join(resPath, 'src', 'render-templates', 'searcheggs')
+  const renderTemplateRoot = fs.existsSync(path.join(resPath, 'lib', 'render-templates'))
+    ? path.join(resPath, 'lib', 'render-templates')
+    : path.join(resPath, 'src', 'render-templates')
+  const searcheggsDir = path.join(renderTemplateRoot, 'searcheggs')
   const eggService = new EggService(searcheggsDir)
 
   const deps: PluginDeps = { ctx, config, client, userMgr, merchantSubMgr, homeSubMgr, eggService, renderer }

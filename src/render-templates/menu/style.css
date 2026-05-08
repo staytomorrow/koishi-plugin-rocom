@@ -8,21 +8,23 @@
     --helper-font-family-mianfeiziti: 'mianfeiziti', system-ui, "calibri", "Roboto", verdana, "PingFang SC", sans-serif;
 }
 
+html,
 body {
   margin: 0;
   padding: 30px;
-  background-color: #FAF6ED;
+  background-color: #f3eee2;
   display: inline-block;
   font-family: var(--helper-font-family-mianfeiziti);
 }
 
 .menu-cont {
   width: 780px;
-  background: url("../../img/ercode-bg.D1ccSQKH.png") no-repeat center center;
-  background-size: 100% 100%;
+  background: url("../../img/ercode-bg.D1ccSQKH.png") center/cover no-repeat;
+  background-color: #f3eee2;
   position: relative;
   padding: 40px 50px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .menu-cont::before {
@@ -31,16 +33,6 @@ body {
   inset: 0;
   background: rgba(28, 22, 18, 0.18);
   z-index: 1;
-  pointer-events: none;
-}
-
-.xiaoluoke-overlay {
-  position: absolute;
-  bottom: -15px;
-  right: -30px;
-  width: 320px;
-  opacity: 0.15;
-  z-index: 2;
   pointer-events: none;
 }
 
@@ -88,7 +80,7 @@ body {
 
 .group-items {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 15px;
 }
 
@@ -102,6 +94,12 @@ body {
   justify-content: center;
   padding: 12px 50px 12px 25px;
   box-sizing: border-box;
+}
+
+.group-items > .menu-item:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  width: calc((100% - 15px) / 2);
+  justify-self: center;
 }
 
 .menu-item-cmd {

@@ -142,6 +142,6 @@ export function register(deps: PluginDeps) {
           logger.warn(`自动刷新用户 ${userId} 失败: ${e}`)
         }
       }
-    }, 60000)
+    }, 30000)
   }
 }

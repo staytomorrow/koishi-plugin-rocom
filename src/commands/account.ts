@@ -183,9 +183,25 @@ export function register(deps: PluginDeps) {
     .alias('洛克切换')
     .action(async ({ session }, index) => {
       if (!index) return '用法：洛克.切换 <序号>'
-      return userMgr.switchPrimary(session!.userId!, index)
-        ? `成功切换到序号 ${index} 账号。`
-        : '序号无效。'
+      const userId = session!.userId!
+      if (!userMgr.switchPrimary(userId, index)) return '序号无效。'
+      const newPrimary = userMgr.getPrimaryBinding(userId)
+      if (newPrimary?.binding_id) {
+        const token = await getRoleToken(ctx, userId)
+        if (token && token.bindingId !== newPrimary.binding_id) {
+          const res = await client.refreshBinding(ctx, newPrimary.binding_id, userId)
+          if (res?.framework_token) {
+            await upsertRoleToken(ctx, {
+              userId,
+              fwt: res.framework_token,
+              bindingId: newPrimary.binding_id,
+              roleId: newPrimary.role_id,
+              loginType: newPrimary.login_type,
+            })
+          }
+        }
+      }
+      return `成功切换到序号 ${index} 账号：${newPrimary?.nickname || '未知'}`
     })
 
   ctx.command('洛克').subcommand('.解绑 <index:number>', '解绑账号')
@@ -204,6 +220,25 @@ export function register(deps: PluginDeps) {
       }
       if (userMgr.getUserBindings(session!.userId!).length === 0) {
         await removeRoleToken(ctx, session!.userId!)
+      } else {
+        const token = await getRoleToken(ctx, session!.userId!)
+        if (token?.bindingId === removed.binding_id) {
+          const newPrimary = userMgr.getPrimaryBinding(session!.userId!)
+          if (newPrimary?.binding_id) {
+            const res = await client.refreshBinding(ctx, newPrimary.binding_id, session!.userId!)
+            if (res?.framework_token) {
+              await upsertRoleToken(ctx, {
+                userId: session!.userId!,
+                fwt: res.framework_token,
+                bindingId: newPrimary.binding_id,
+                roleId: newPrimary.role_id,
+                loginType: newPrimary.login_type,
+              })
+            } else {
+              await removeRoleToken(ctx, session!.userId!)
+            }
+          }
+        }
       }
       return `已解绑账号：${removed.nickname}`
     })

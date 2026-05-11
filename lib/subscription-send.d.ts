@@ -5,4 +5,5 @@ export interface SubscriptionTarget {
     guildId?: string;
     userId?: string;
 }
-export declare function sendScheduledMessage(ctx: Context, target: SubscriptionTarget, message: string): Promise<boolean>;
+export declare function sendScheduledMessage(ctx: Context, target: SubscriptionTarget, message: any): Promise<boolean>;
+export declare function sendScheduledImageWithFallback(ctx: Context, target: SubscriptionTarget, image: Buffer | null, fallbackText: string, mentionAll?: boolean): Promise<boolean>;

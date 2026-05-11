@@ -1,7 +1,7 @@
 import { Logger } from 'koishi'
 import { PluginDeps } from '../types'
-import { sendImageWithFallback } from '../send-image'
-import { sendScheduledMessage } from '../subscription-send'
+import { compressPngImage, sendImageWithFallback } from '../send-image'
+import { sendScheduledImageWithFallback } from '../subscription-send'
 
 const logger = new Logger('rocom-merchant')
 
@@ -18,6 +18,7 @@ const TEXT = {
 
 type MerchantRoundInfo = {
   current: number | null
+  total: number
   countdown: string
   is_open: boolean
   round_id: string
@@ -35,6 +36,13 @@ function formatProductWindow(product: any): string {
   const end = normalizeTimestamp(product?.end_time)
   if (!start && !end) return ''
 
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp)
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${month}-${day}`
+  }
+
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp)
     const hour = String(date.getHours()).padStart(2, '0')
@@ -42,9 +50,12 @@ function formatProductWindow(product: any): string {
     return `${hour}:${minute}`
   }
 
-  if (start && end) return `${formatTime(start)}-${formatTime(end)}`
-  if (start) return `${formatTime(start)}+`
-  return `${formatTime(end!)}-`
+  if (start && end) {
+    const datePart = formatDate(start)
+    return `${datePart} ${formatTime(start)} – ${formatTime(end)}`
+  }
+  if (start) return `${formatDate(start)} ${formatTime(start)}+`
+  return `${formatDate(end!)} ${formatTime(end!)}-`
 }
 
 function getMerchantActivity(res: any): any {
@@ -94,6 +105,7 @@ function getCurrentMerchantRound(): MerchantRoundInfo {
 
   return {
     current: currentRound,
+    total: rounds.length,
     countdown: `${hours}\u5c0f\u65f6${mins}\u5206\u949f`,
     is_open: currentRound !== null,
     round_id: `${datePart}-${currentRound || 'closed'}`,
@@ -132,14 +144,38 @@ function sameStringArray(left: string[], right: string[]) {
   return JSON.stringify(left) === JSON.stringify(right)
 }
 
+function buildMerchantRenderPayload(res: any) {
+  const products = getActiveProducts(res)
+  const roundInfo = getCurrentMerchantRound()
+  const activity = getMerchantActivity(res)
+  const data = {
+    background: '',
+    title: activity.name || TEXT.merchant,
+    subtitle: activity.start_date || '\u6bcf\u65e5 08:00 / 12:00 / 16:00 / 20:00 \u5237\u65b0',
+    titleIcon: true,
+    product_count: products.length,
+    round_info: roundInfo,
+    products: products.map((p: any) => ({
+      name: p.name || TEXT.unknown,
+      image: p.icon_url || '',
+      time_label: formatProductWindow(p),
+    })),
+  }
+  const fallback = products.length
+    ? `\u8fdc\u884c\u5546\u4eba\u5f53\u524d\u5546\u54c1\uff1a${products.map((p: any) => p.name || TEXT.unknown).join('\u3001')}\n\u8f6e\u6b21\uff1a${roundInfo.current || TEXT.notOpen}\n\u5269\u4f59\uff1a${roundInfo.countdown}`
+    : '\u5f53\u524d\u8fdc\u884c\u5546\u4eba\u6682\u65e0\u5546\u54c1\u3002'
+  return { products, roundInfo, data, fallback }
+}
+
 async function checkMerchantSubscriptions(deps: PluginDeps) {
-  const { ctx, client, merchantSubMgr } = deps
+  const { ctx, client, merchantSubMgr, renderer, config } = deps
   const res = await client.getMerchantInfo(ctx, true)
   if (!res) return { subscriptions: 0, matched: 0, pushed: 0 }
 
-  const products = getActiveProducts(res)
+  const { products, roundInfo, data, fallback } = buildMerchantRenderPayload(res)
   const productNames = products.map((p: any) => p.name || '').filter(Boolean)
-  const roundInfo = getCurrentMerchantRound()
+  const rendered = await renderer.renderHtml(ctx, 'yuanxing-shangren', data)
+  const renderedPng = rendered ? compressPngImage(rendered, config) : null
   const subs = merchantSubMgr.getAll()
   let matchedCount = 0
   let pushedCount = 0
@@ -158,12 +194,13 @@ async function checkMerchantSubscriptions(deps: PluginDeps) {
       continue
     }
 
-    const sent = await sendScheduledMessage(ctx, {
+    const fallbackText = `${msg}\n${fallback}`
+    const sent = await sendScheduledImageWithFallback(ctx, {
       platform,
       channelId,
       guildId: sub.group_id || '',
       userId: sub.user_id || '',
-    }, sub.mention_all ? `@\u5168\u4f53\n${msg}` : msg)
+    }, renderedPng, fallbackText, !!sub.mention_all)
     if (!sent) continue
 
     pushedCount++
@@ -185,25 +222,7 @@ export function register(deps: PluginDeps) {
       const res = await client.getMerchantInfo(ctx, true)
       if (!res) return '\u83b7\u53d6\u8fdc\u884c\u5546\u4eba\u6570\u636e\u5931\u8d25\u3002'
 
-      const products = getActiveProducts(res)
-      const roundInfo = getCurrentMerchantRound()
-      const activity = getMerchantActivity(res)
-      const data = {
-        background: '',
-        title: activity.name || TEXT.merchant,
-        subtitle: activity.start_date || '\u6bcf\u65e5 08:00 / 12:00 / 16:00 / 20:00 \u5237\u65b0',
-        titleIcon: '',
-        product_count: products.length,
-        round_info: roundInfo,
-        products: products.map((p: any) => ({
-          name: p.name || TEXT.unknown,
-          image: p.icon_url || '',
-          time_label: formatProductWindow(p),
-        })),
-      }
-      const fallback = products.length
-        ? `\u8fdc\u884c\u5546\u4eba\u5f53\u524d\u5546\u54c1\uff1a${products.map((p: any) => p.name || TEXT.unknown).join('\u3001')}\n\u8f6e\u6b21\uff1a${roundInfo.current || TEXT.notOpen}\n\u5269\u4f59\uff1a${roundInfo.countdown}`
-        : '\u5f53\u524d\u8fdc\u884c\u5546\u4eba\u6682\u65e0\u5546\u54c1\u3002'
+      const { data, fallback } = buildMerchantRenderPayload(res)
       const png = await deps.renderer.renderHtml(ctx, 'yuanxing-shangren', data)
       await sendImageWithFallback(session, png, fallback, 'merchant:yuanxing-shangren', deps.config)
     })

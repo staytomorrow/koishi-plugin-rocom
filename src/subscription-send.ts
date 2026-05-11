@@ -1,4 +1,4 @@
-import { Context, Logger } from 'koishi'
+import { Context, h, Logger } from 'koishi'
 
 const logger = new Logger('rocom-subscription-send')
 
@@ -15,7 +15,7 @@ function findBot(ctx: Context, platform = ''): any {
   return ctx.bots.find((bot: any) => bot.platform === platform) || ctx.bots[0]
 }
 
-export async function sendScheduledMessage(ctx: Context, target: SubscriptionTarget, message: string) {
+export async function sendScheduledMessage(ctx: Context, target: SubscriptionTarget, message: any) {
   const platform = target.platform || ''
   const channelId = target.channelId || target.guildId || ''
   const userId = target.userId || ''
@@ -54,4 +54,23 @@ export async function sendScheduledMessage(ctx: Context, target: SubscriptionTar
 
   logger.warn(`scheduled push target is incomplete: ${JSON.stringify(target)}`)
   return false
+}
+
+export async function sendScheduledImageWithFallback(
+  ctx: Context,
+  target: SubscriptionTarget,
+  image: Buffer | null,
+  fallbackText: string,
+  mentionAll = false,
+) {
+  const prefix = mentionAll ? '@全体\n' : ''
+  if (!image) {
+    return sendScheduledMessage(ctx, target, `${prefix}${fallbackText}`)
+  }
+
+  const imageSegment = h.image(image, 'image/png')
+  const content = mentionAll ? `${prefix}${imageSegment}` : imageSegment
+  const sent = await sendScheduledMessage(ctx, target, content)
+  if (sent) return true
+  return sendScheduledMessage(ctx, target, `${prefix}${fallbackText}`)
 }

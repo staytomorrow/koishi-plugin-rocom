@@ -1087,6 +1087,7 @@ export function register(deps: PluginDeps) {
           tags: lineup.tags || [],
           likes: lineup.likes || 0,
           author_name: lineup.author_name || '?',
+          author_avatar: lineup.author_avatar || '',
           lineup_code: String(lineup.id || ''),
           pets: (lineup.lineup?.pets || []).map((pet: any) => ({
             pet_name: pet.pet_name || '',

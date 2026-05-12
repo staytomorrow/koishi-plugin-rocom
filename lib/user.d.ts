@@ -13,6 +13,7 @@ export interface MerchantSubscription {
     user_id?: string;
     type?: string;
     mention_all: boolean;
+    match_all?: boolean;
     items: string[];
     last_push_round: string | null;
     last_matched_items: string[];

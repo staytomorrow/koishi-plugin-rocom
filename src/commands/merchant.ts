@@ -120,11 +120,16 @@ function parseMerchantSubscriptionArgs(args: string | undefined, defaultItems: s
     mentionAll = parts.shift() === '1'
   }
 
-  const items = parts.length ? parts : defaultItems
+  const matchAll = parts.length === 1 && parts[0] === '全部'
+  if (matchAll) parts.shift()
+
+  const items = matchAll ? [] : (parts.length ? parts : defaultItems)
+  const source = matchAll ? '全部商品' : (parts.length ? TEXT.customSource : TEXT.defaultSource)
   return {
     mention_all: mentionAll,
+    match_all: matchAll,
     items,
-    source: parts.length ? TEXT.customSource : TEXT.defaultSource,
+    source,
   }
 }
 
@@ -181,12 +186,22 @@ async function checkMerchantSubscriptions(deps: PluginDeps) {
   let pushedCount = 0
 
   for (const [key, sub] of Object.entries(subs)) {
-    const matched = sub.items.filter((item: string) => productNames.some(n => n.includes(item)))
-    if (!matched.length) continue
+    const matchAll = !!sub.match_all
+    const matched = matchAll
+      ? productNames
+      : sub.items.filter((item: string) => productNames.some(n => n.includes(item)))
+    if (!matchAll && !matched.length) continue
+    if (matchAll && !products.length) continue
     matchedCount++
-    if (sub.last_push_round === roundInfo.round_id && sameStringArray(matched, sub.last_matched_items || [])) continue
+    if (matchAll) {
+      if (sub.last_push_round === roundInfo.round_id) continue
+    } else {
+      if (sub.last_push_round === roundInfo.round_id && sameStringArray(matched, sub.last_matched_items || [])) continue
+    }
 
-    const msg = `\ud83d\udd14 \u8fdc\u884c\u5546\u4eba\u5237\u65b0\u63d0\u9192\n\u5f53\u524d\u5546\u54c1\uff1a${productNames.join('\u3001')}\n\u5339\u914d\u8ba2\u9605\uff1a${matched.join('\u3001')}`
+    const msg = matchAll
+      ? `\ud83d\udd14 \u8fdc\u884c\u5546\u4eba\u5237\u65b0\u63d0\u9192\n\u5f53\u524d\u5546\u54c1\uff1a${productNames.join('\u3001')}`
+      : `\ud83d\udd14 \u8fdc\u884c\u5546\u4eba\u5237\u65b0\u63d0\u9192\n\u5f53\u524d\u5546\u54c1\uff1a${productNames.join('\u3001')}\n\u5339\u914d\u8ba2\u9605\uff1a${matched.join('\u3001')}`
     const platform = sub.platform || ctx.bots[0]?.platform
     const channelId = sub.channel_id || sub.group_id || sub.user_id || key
     if (!platform || !channelId) {
@@ -241,13 +256,14 @@ export function register(deps: PluginDeps) {
         channel_id: target.channelId,
         platform: target.platform,
         items: parsed.items,
+        match_all: parsed.match_all,
         mention_all: target.privateChat ? false : parsed.mention_all,
         last_push_round: existing?.last_push_round ?? null,
         last_matched_items: existing?.last_matched_items ?? [],
         updated_by: session.userId!,
       })
 
-      return `\u2705 \u5df2\u8ba2\u9605\u8fdc\u884c\u5546\u4eba\u5546\u54c1\uff1a${parsed.items.join('\u3001')}\uff08${parsed.source}\uff09\uff1b${target.privateChat ? '个人订阅' : (parsed.mention_all ? '\u547d\u4e2d\u540e\u4f1a @\u5168\u4f53' : '\u547d\u4e2d\u540e\u4e0d @\u5168\u4f53')}`
+      return `\u2705 \u5df2\u8ba2\u9605\u8fdc\u884c\u5546\u4eba\u5546\u54c1\uff1a${parsed.match_all ? '\u5168\u90e8\u5546\u54c1\uff08\u6bcf\u8f6e\u63a8\u9001\uff09' : parsed.items.join('\u3001')}\uff08${parsed.source}\uff09\uff1b${target.privateChat ? '个人订阅' : (parsed.mention_all ? '\u547d\u4e2d\u540e\u4f1a @\u5168\u4f53' : '\u547d\u4e2d\u540e\u4e0d @\u5168\u4f53')}`
     })
 
   ctx.command(TEXT.viewSubscribe, '\u67e5\u770b\u5f53\u524d\u4f1a\u8bdd\u7684\u8fdc\u884c\u5546\u4eba\u8ba2\u9605')
@@ -256,8 +272,9 @@ export function register(deps: PluginDeps) {
       if (!target.privateChat && !isBotAdmin(session, config.adminUserIds)) return '此指令仅限管理员使用。'
       const sub = merchantSubMgr.get(target.key)
       const scopeName = target.privateChat ? '你' : '当前群组'
-      if (!sub) return `${scopeName}未订阅远行商人。\n用法：${TEXT.subscribe} [1/0] [商品名1] [商品名2] ...`
-      return `${scopeName}订阅商品：${sub.items.join('、')}\n提醒方式：${target.privateChat ? '私聊提醒' : (sub.mention_all ? '@全体' : '普通提醒')}`
+      if (!sub) return `${scopeName}未订阅远行商人。\n用法：${TEXT.subscribe} [1/0] [商品名1] [商品名2] ...\n或：${TEXT.subscribe} 全部（每轮直接推送整张商人图）`
+      const itemsText = sub.match_all ? '全部商品（每轮推送）' : sub.items.join('、')
+      return `${scopeName}订阅商品：${itemsText}\n提醒方式：${target.privateChat ? '私聊提醒' : (sub.mention_all ? '@全体' : '普通提醒')}`
     })
 
   ctx.command(TEXT.unsubscribe, '\u53d6\u6d88\u8fdc\u884c\u5546\u4eba\u8ba2\u9605')

@@ -30,16 +30,12 @@ Koishi 版洛克王国数据查询插件。插件基于 WeGame / 后端接口提
 
 如果图片渲染失败，插件会尽量回落为文字结果；但档案、战绩、背包、阵容、交换大厅、远行商人和查蛋配种等功能推荐配合 Puppeteer 使用。
 
-| 功能 | 示例图片 |
-| --- | --- |
-| 帮助菜单 | <img src="docs/images/菜单.png" width="400" /> |
-| 个人档案 | <img src="docs/images/洛克档案.png" width="400" /> |
-| 背包 | <img src="docs/images/洛克背包.png" width="400" /> |
-| 阵容推荐 | <img src="docs/images/洛克阵容.png" width="400" /> |
-| 阵容详情 | <img src="docs/images/阵容详细.png" width="400" /> |
-| 远行商人 | <img src="docs/images/远行商人.png" width="400" /> |
-| 家园 | <img src="docs/images/洛克家园.png" width="400" /> |
-| 查蛋 | <img src="docs/images/洛克查蛋.png" width="400" /> |
+| 功能 | 示例图片 | 功能 | 示例图片 |
+| --- | --- | --- | --- |
+| 帮助菜单 | <img src="docs/images/菜单.png" width="400" /> | 个人档案 | <img src="docs/images/洛克档案.png" width="400" /> |
+| 背包 | <img src="docs/images/洛克背包.png" width="400" /> | 阵容推荐 | <img src="docs/images/洛克阵容.png" width="400" /> |
+| 阵容详情 | <img src="docs/images/阵容详细.png" width="400" /> | 远行商人 | <img src="docs/images/远行商人.png" width="400" /> |
+| 家园 | <img src="docs/images/洛克家园.png" width="400" /> | 查蛋 | <img src="docs/images/洛克查蛋.png" width="400" /> |
 
 ## 配置项
 

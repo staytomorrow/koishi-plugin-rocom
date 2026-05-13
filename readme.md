@@ -32,14 +32,14 @@ Koishi 版洛克王国数据查询插件。插件基于 WeGame / 后端接口提
 
 | 功能 | 示例图片 |
 | --- | --- |
-| 帮助菜单 | ![菜单](docs/images/菜单.png) |
-| 个人档案 | ![档案](docs/images/洛克档案.png) |
-| 背包 | ![背包](docs/images/洛克背包.png) |
-| 阵容推荐 | ![阵容](docs/images/洛克阵容.png) |
-| 阵容详情 | ![阵容详情](docs/images/阵容详细.png) |
-| 远行商人 | ![远行商人](docs/images/远行商人.png) |
-| 家园 | ![家园](docs/images/洛克家园.png) |
-| 查蛋 | ![查蛋](docs/images/洛克查蛋.png) |
+| 帮助菜单 | <img src="docs/images/菜单.png" width="400" /> |
+| 个人档案 | <img src="docs/images/洛克档案.png" width="400" /> |
+| 背包 | <img src="docs/images/洛克背包.png" width="400" /> |
+| 阵容推荐 | <img src="docs/images/洛克阵容.png" width="400" /> |
+| 阵容详情 | <img src="docs/images/阵容详细.png" width="400" /> |
+| 远行商人 | <img src="docs/images/远行商人.png" width="400" /> |
+| 家园 | <img src="docs/images/洛克家园.png" width="400" /> |
+| 查蛋 | <img src="docs/images/洛克查蛋.png" width="400" /> |
 
 ## 配置项
 
